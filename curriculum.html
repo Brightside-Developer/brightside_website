@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/png" href="logo.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Curriculum — Brightside</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+  /* FILTER BAR */
+  .filter-bar { background: white; border-bottom: 1px solid rgba(57,87,49,0.08); padding: 0 4rem; display: flex; gap: 0.5rem; overflow-x: auto; }
+  .filter-tab { padding: 1.1rem 1.4rem; border: none; background: none; font-family: 'DM Sans', sans-serif; font-size: 0.88rem; font-weight: 500; color: #6b7280; cursor: pointer; white-space: nowrap; border-bottom: 3px solid transparent; transition: all 0.2s; display: flex; align-items: center; gap: 0.5rem; }
+  .filter-tab:hover { color: var(--forest); }
+  .filter-tab.active { color: var(--forest); border-bottom-color: var(--gold); font-weight: 700; }
+
+  /* CURRICULUM SECTIONS */
+  .curriculum { background: var(--warm-white); }
+  .program-section { max-width: 1100px; margin: 0 auto 5rem; }
+  .program-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 2rem; margin-bottom: 2.5rem; padding-bottom: 2rem; border-bottom: 1px solid rgba(57,87,49,0.08); }
+  .program-header-left { display: flex; gap: 1.5rem; align-items: center; }
+  .prog-icon-big { width: 72px; height: 72px; border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 2rem; flex-shrink: 0; }
+  .prog-name { font-family: 'Playfair Display', serif; font-size: 1.8rem; font-weight: 900; color: var(--forest); margin-bottom: 0.3rem; }
+  .prog-meta { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+  .prog-stat { font-size: 0.8rem; color: #6b7280; display: flex; align-items: center; gap: 0.3rem; }
+  .prog-stat strong { color: var(--forest); }
+  .prog-cta { flex-shrink: 0; }
+
+  /* MODULE GRID */
+  .module-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+  .module-card { background: white; border-radius: 16px; padding: 1.5rem; border: 1px solid rgba(57,87,49,0.07); transition: all 0.25s; position: relative; overflow: hidden; }
+  .module-card:hover { box-shadow: 0 12px 40px rgba(57,87,49,0.09); transform: translateY(-3px); }
+  .module-num { font-family: 'DM Mono', monospace; font-size: 0.7rem; letter-spacing: 0.1em; color: #9ca3af; margin-bottom: 0.8rem; }
+  .module-title { font-weight: 700; font-size: 1rem; color: var(--forest); margin-bottom: 0.4rem; }
+  .module-desc { font-size: 0.84rem; line-height: 1.55; color: #6b7280; margin-bottom: 1rem; }
+  .module-lessons { display: flex; flex-direction: column; gap: 0.35rem; }
+  .lesson-item { display: flex; align-items: center; gap: 0.6rem; font-size: 0.8rem; color: #4a5568; }
+  .lesson-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .module-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; padding-top: 0.8rem; border-top: 1px solid rgba(57,87,49,0.05); }
+  .lesson-count { font-size: 0.78rem; color: #9ca3af; font-family: 'DM Mono', monospace; }
+  .module-type { font-size: 0.72rem; font-weight: 600; padding: 0.2rem 0.6rem; border-radius: 100px; }
+
+  /* Program color themes */
+  .theme-kids .prog-icon-big { background: rgba(142,186,126,0.15); }
+  .theme-kids .lesson-dot { background: var(--mint); }
+  .theme-kids .module-type { background: rgba(142,186,126,0.12); color: var(--sage); }
+  .theme-teens .prog-icon-big { background: rgba(168,172,148,0.15); }
+  .theme-teens .lesson-dot { background: var(--gold); }
+  .theme-teens .module-type { background: rgba(168,172,148,0.12); color: #8a6a10; }
+  .theme-adults .prog-icon-big { background: rgba(79,121,68,0.1); }
+  .theme-adults .lesson-dot { background: var(--sage); }
+  .theme-adults .module-type { background: rgba(79,121,68,0.08); color: var(--sage); }
+  .theme-peak .prog-icon-big { background: rgba(57,87,49,0.08); }
+  .theme-peak .lesson-dot { background: var(--primary); }
+  .theme-peak .module-type { background: rgba(57,87,49,0.06); color: var(--forest); }
+  .theme-seniors .prog-icon-big { background: rgba(122,107,58,0.1); }
+  .theme-seniors .lesson-dot { background: var(--rust); }
+  .theme-seniors .module-type { background: rgba(122,107,58,0.08); color: var(--rust); }
+  .theme-community .prog-icon-big { background: rgba(123,104,238,0.1); }
+  .theme-community .lesson-dot { background: #7b68ee; }
+  .theme-community .module-type { background: rgba(123,104,238,0.08); color: #5a4de0; }
+
+  /* LEARNING OUTCOMES */
+  .outcomes-bar { background: var(--cream); padding: 4rem; }
+  .outcomes-inner { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 1fr 2fr; gap: 4rem; align-items: start; }
+  .outcomes-list { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .outcome-item { background: white; border-radius: 14px; padding: 1.2rem; border: 1px solid rgba(57,87,49,0.06); display: flex; gap: 0.8rem; align-items: flex-start; }
+  .outcome-check { width: 28px; height: 28px; background: rgba(142,186,126,0.15); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; flex-shrink: 0; }
+  .outcome-text { font-size: 0.85rem; color: var(--forest); font-weight: 500; line-height: 1.4; }
+
+  @media (max-width: 900px) {
+    .filter-bar { padding: 0 1.5rem; }
+    .module-grid { grid-template-columns: 1fr 1fr; }
+    .program-header { flex-direction: column; }
+    .outcomes-inner { grid-template-columns: 1fr; }
+    .outcomes-list { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 600px) {
+    .module-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<nav id="mainNav">
+  <a href="index.html" class="nav-logo"><img src="logo.png" alt="Brightside" class="nav-logo-img"><span class="nav-brand"><span class="brand-primary">Bright</span><span class="brand-secondary">side</span></span></a>
+  <ul class="nav-links">
+    <li><a href="index.html" id="nl-home">Home</a></li>
+    <li><a href="about.html" id="nl-about">About Us</a></li>
+    <li><a href="curriculum.html" id="nl-curriculum">Curriculum</a></li>
+    <li><a href="medical.html" id="nl-medical">Medical Finances</a></li>
+    <li><a href="course.html" id="nl-course">Courses</a></li>
+    <li><a href="https://donorbox.org/brightside-finance-operations" class="nav-cta">Donate</a></li>
+  </ul>
+  <button class="nav-hamburger" onclick="document.getElementById('mobileMenu').classList.add('open')" aria-label="Open menu">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+<div class="mobile-menu" id="mobileMenu">
+  <button class="mobile-close" onclick="document.getElementById('mobileMenu').classList.remove('open')">✕</button>
+  <a href="index.html" onclick="document.getElementById('mobileMenu').classList.remove('open')">Home</a>
+  <a href="about.html" onclick="document.getElementById('mobileMenu').classList.remove('open')">About Us</a>
+  <a href="curriculum.html" onclick="document.getElementById('mobileMenu').classList.remove('open')">Curriculum</a>
+  <a href="medical.html" onclick="document.getElementById('mobileMenu').classList.remove('open')">Medical Finances</a>
+  <a href="course.html" onclick="document.getElementById('mobileMenu').classList.remove('open')">Courses</a>
+  <a href="https://donorbox.org/brightside-finance-operations" onclick="document.getElementById('mobileMenu').classList.remove('open')" style="color:var(--primary);background:var(--secondary);padding:0.6rem 1.8rem;border-radius:100px;font-size:1rem;">Donate</a>
+</div>
+<div class="page-hero">
+  <div class="page-hero-bg"></div>
+  <div class="page-hero-grid"></div>
+  <div class="page-hero-inner">
+    <span class="page-hero-eyebrow">Full Curriculum</span>
+    <h1>Three programs. <em>One mission.</em></h1>
+    <p>Every Brightside curriculum is built by certified educators and financial professionals, designed for the real money challenges people face at each stage of life.</p>
+  </div>
+</div>
+
+<!-- FILTER BAR -->
+<div class="filter-bar">
+  <button class="filter-tab active" onclick="filterPrograms('all', this)">🗂 All Programs</button>
+  <button class="filter-tab" onclick="filterPrograms('kids', this)">🧸 Money Sprouts (Elementary)</button>
+  <button class="filter-tab" onclick="filterPrograms('teens', this)">🎒 Smart Start (Middle & High School)</button>
+  <button class="filter-tab" onclick="filterPrograms('adults', this)">💼 Financial Foundations (Adults)</button>
+</div>
+
+<!-- CURRICULUM SECTIONS -->
+<section class="curriculum">
+
+  <!-- MONEY SPROUTS -->
+  <div class="program-section theme-kids" data-program="kids">
+    <div class="program-header reveal">
+      <div class="program-header-left">
+        <div class="prog-icon-big">🧸</div>
+        <div>
+          <div class="prog-name">Money Sprouts</div>
+          <div class="prog-meta">
+            <span class="prog-meta"><span class="tag tag-mint">Elementary School · Ages 5–10</span></span>
+            <span class="prog-stat">⏱ <strong>8 modules</strong> · 24 lessons</span>
+            <span class="prog-stat">📺 <strong>Video + Activities</strong></span>
+            <span class="prog-stat">⭐ <strong>4.9/5</strong> avg. rating</span>
+          </div>
+        </div>
+      </div>
+      <div class="prog-cta"><a href="course.html" class="btn-primary">Start This Program →</a></div>
+    </div>
+    <div class="module-grid">
+      <div class="module-card reveal reveal-delay-1">
+        <div class="module-num">MODULE 01</div>
+        <div class="module-title">What Is Money?</div>
+        <p class="module-desc">Understanding where money comes from, how we earn it, and why we use it instead of trading.</p>
+        <div class="module-lessons">
+          <div class="lesson-item"><span class="lesson-dot"></span>Where does money come from?</div>
+          <div class="lesson-item"><span class="lesson-dot"></span>Coins & bills — what's the difference?</div>
+          <div class="lesson-item"><span class="lesson-dot"></span>A short history of money</div>
+        </div>
+        <div class="module-footer"><span class="lesson-count">3 LESSONS</span><span class="module-type">Story + Activity</span></div>
+      </div>
+      <div class="module-card reveal reveal-delay-2">
+        <div class="module-num">MODULE 02</div>
+        <div class="module-title">Earning & Working</div>
+        <p class="module-desc">How people earn money through jobs, chores, and creative work — and why effort matters.</p>
+        <div class="module-lessons">
+          <div class="lesson-item"><span class="lesson-dot"></span>Jobs people do</div>
+          <div class="lesson-item"><span class="lesson-dot"></span>Getting paid for chores</div>
+          <div class="lesson-item"><span class="lesson-dot"></span>Making vs. buying things</div>
+        </div>
+        <div class="module-footer"><span class="lesson-count">3 LESSONS</span><span class="module-type">Video + Quiz</span></div>
+      </div>
+      <div class="module-card reveal reveal-delay-3">
+        <div class="module-num">MODULE 03</div>
+        <div class="module-title">Saving in Jars</div>
+        <p class="module-desc">The three-jar system: Spend, Save, and Give. Building the habit of saving from day one.</p>
+        <div class="module-lessons">
+          <div class="lesson-item"><span class="lesson-dot"></span>Meet the three jars</div>
+          <div class="lesson-item"><span class="lesson-dot"></span>Setting a savings goal</div>
+          <div class="lesson-item"><span class="lesson-dot"></span>Tracking your progress</div>
+        </div>
+        <div class="module-footer"><span class="lesson-count">3 LESSONS</span><span class="module-type">Hands-On Activity</span></div>
+      </div>
+      <div class="module-card reveal reveal-delay-1">
+        <div class="module-num">MODULE 04</div>
+        <div class="module-title">Needs vs. Wants</div>
+        <p class="module-desc">The most important money concept — learning to tell the difference between what we need and what we want.</p>
+        <div class="module-lessons">
+          <div class="lesson-item"><span class="lesson-dot"></span>What do we really need?</div>
+          <div class="lesson-item"><span class="lesson-dot"></span>Wants can wait</div>
+          <div class="lesson-item"><span class="lesson-dot"></span>Making smart choices at the store</div>
+        </div>
+        <div class="module-footer"><span class="lesson-count">3 LESSONS</span><span class="module-type">Story + Activity</span></div>
+      </div>
+      <div class="module-card reveal reveal-delay-2">
+        <div class="module-num">MODULE 05</div>
+        <div class="module-title">The Giving Jar</div>
+        <p class="module-desc">Why sharing and giving is a part of good money management — and how generosity makes communities stronger.</p>
+        <div class="module-lessons">
+          <div class="lesson-item"><span class="lesson-dot"></span>Why we give</div>
+          <div class="lesson-item"><span class="lesson-dot"></span>Choosing a cause you care about</div>
+          <div class="lesson-item"><span class="lesson-dot"></span>Giving your time, not just money</div>
+        </div>
+        <div class="module-footer"><span class="lesson-count">3 LESSONS</span><span class="module-type">Discussion</span></div>
+      </div>
+      <div class="module-card reveal reveal-delay-3">
+        <div class="module-num">MODULE 06</div>
+        <div class="module-title">My First Goal</div>
+        <p class="module-desc">Setting a real savings goal and making a simple plan to reach it — with a celebration at the end!</p>
+        <div class="module-lessons">
+          <div class="lesson-item"><span class="lesson-dot"></span>Choosing your goal</div>
+          <div class="lesson-item"><span class="lesson-dot"></span>Making a saving plan</div>
+          <div class="lesson-item"><span class="lesson-dot"></span>Celebrating milestones</div>
+        </div>
+        <div class="module-footer"><span class="lesson-count">3 LESSONS</span><span class="module-type">Project</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SMART START -->
+  <div class="program-section theme-teens" data-program="teens">
+    <div class="program-header reveal">
+      <div class="program-header-left">
+        <div class="prog-icon-big">🎒</div>
+        <div>
+          <div class="prog-name">Smart Start</div>
+          <div class="prog-meta">
+            <span class="tag tag-gold">Middle &amp; High School · Ages 11–18</span>
+            <span class="prog-stat">⏱ <strong>10 modules</strong> · 35 lessons</span>
+            <span class="prog-stat">📺 <strong>Video + Worksheets</strong></span>
+            <span class="prog-stat">⭐ <strong>4.8/5</strong> avg. rating</span>
+          </div>
+        </div>
+      </div>
+      <div class="prog-cta"><a href="course.html" class="btn-primary">Start This Program →</a></div>
+    </div>
+    <div class="module-grid">
+      <div class="module-card reveal reveal-delay-1"><div class="module-num">MODULE 01</div><div class="module-title">Your First Paycheck</div><p class="module-desc">Breaking down taxes, deductions, and net vs. gross pay so your first job isn't a surprise.</p><div class="module-lessons"><div class="lesson-item"><span class="lesson-dot"></span>Gross vs. net pay</div><div class="lesson-item"><span class="lesson-dot"></span>Understanding tax withholding</div><div class="lesson-item"><span class="lesson-dot"></span>Reading a pay stub</div></div><div class="module-footer"><span class="lesson-count">3 LESSONS</span><span class="module-type">Video + Calculator</span></div></div>
+      <div class="module-card reveal reveal-delay-2"><div class="module-num">MODULE 02</div><div class="module-title">Teen Budgeting 101</div><p class="module-desc">Creating a simple budget for a teen's income — allowance, jobs, and birthday money all count.</p><div class="module-lessons"><div class="lesson-item"><span class="lesson-dot"></span>What is a budget?</div><div class="lesson-item"><span class="lesson-dot"></span>Fixed vs. flexible spending</div><div class="lesson-item"><span class="lesson-dot"></span>Building your first budget</div></div><div class="module-footer"><span class="lesson-count">3 LESSONS</span><span class="module-type">Worksheet</span></div></div>
+      <div class="module-card reveal reveal-delay-3"><div class="module-num">MODULE 03</div><div class="module-title">Credit — The Basics</div><p class="module-desc">What credit is, why it matters, and how the decisions you make now can affect you for years.</p><div class="module-lessons"><div class="lesson-item"><span class="lesson-dot"></span>What is a credit score?</div><div class="lesson-item"><span class="lesson-dot"></span>Good debt vs. bad debt</div><div class="lesson-item"><span class="lesson-dot"></span>Building credit at 18</div></div><div class="module-footer"><span class="lesson-count">3 LESSONS</span><span class="module-type">Video + Quiz</span></div></div>
+      <div class="module-card reveal reveal-delay-1"><div class="module-num">MODULE 04</div><div class="module-title">Banking & Accounts</div><p class="module-desc">Opening your first bank account, understanding checking vs. savings, and avoiding fees.</p><div class="module-lessons"><div class="lesson-item"><span class="lesson-dot"></span>Checking vs. savings accounts</div><div class="lesson-item"><span class="lesson-dot"></span>How to avoid bank fees</div><div class="lesson-item"><span class="lesson-dot"></span>Digital banking & apps</div></div><div class="module-footer"><span class="lesson-count">4 LESSONS</span><span class="module-type">Interactive</span></div></div>
+      <div class="module-card reveal reveal-delay-2"><div class="module-num">MODULE 05</div><div class="module-title">College & Money</div><p class="module-desc">FAFSA, scholarships, student loans, and how to avoid graduating with crushing debt.</p><div class="module-lessons"><div class="lesson-item"><span class="lesson-dot"></span>Filling out FAFSA</div><div class="lesson-item"><span class="lesson-dot"></span>Scholarships vs. loans</div><div class="lesson-item"><span class="lesson-dot"></span>Understanding student loan interest</div></div><div class="module-footer"><span class="lesson-count">4 LESSONS</span><span class="module-type">Guide + Worksheet</span></div></div>
+      <div class="module-card reveal reveal-delay-3"><div class="module-num">MODULE 06</div><div class="module-title">Smart Shopping</div><p class="module-desc">Comparison shopping, avoiding impulse buys, and understanding marketing tricks designed to separate you from your money.</p><div class="module-lessons"><div class="lesson-item"><span class="lesson-dot"></span>How advertising works</div><div class="lesson-item"><span class="lesson-dot"></span>Comparison shopping strategies</div><div class="lesson-item"><span class="lesson-dot"></span>The 24-hour rule</div></div><div class="module-footer"><span class="lesson-count">3 LESSONS</span><span class="module-type">Activity</span></div></div>
+    </div>
+  </div>
+
+  <!-- FINANCIAL FOUNDATIONS -->
+  <div class="program-section theme-adults" data-program="adults">
+    <div class="program-header reveal">
+      <div class="program-header-left">
+        <div class="prog-icon-big">💼</div>
+        <div>
+          <div class="prog-name">Financial Foundations</div>
+          <div class="prog-meta">
+            <span class="tag">Adults · Ages 18+</span>
+            <span class="prog-stat">⏱ <strong>6 modules</strong> · 24 lessons</span>
+            <span class="prog-stat">📺 <strong>Video + Tools</strong></span>
+            <span class="prog-stat">⭐ <strong>4.9/5</strong> avg. rating</span>
+          </div>
+        </div>
+      </div>
+      <div class="prog-cta"><a href="course.html" class="btn-primary">Start This Program →</a></div>
+    </div>
+    <div class="module-grid">
+      <div class="module-card reveal reveal-delay-1"><div class="module-num">MODULE 01</div><div class="module-title">Adult Budgeting</div><p class="module-desc">The 50/30/20 rule and zero-based budgeting — which method fits your life and income?</p><div class="module-lessons"><div class="lesson-item"><span class="lesson-dot"></span>50/30/20 rule explained</div><div class="lesson-item"><span class="lesson-dot"></span>Zero-based budgeting</div><div class="lesson-item"><span class="lesson-dot"></span>Budgeting apps compared</div></div><div class="module-footer"><span class="lesson-count">4 LESSONS</span><span class="module-type">Calculator Tool</span></div></div>
+      <div class="module-card reveal reveal-delay-2"><div class="module-num">MODULE 02</div><div class="module-title">Emergency Fund</div><p class="module-desc">Why 3–6 months of expenses is your most important financial foundation — and how to build it fast.</p><div class="module-lessons"><div class="lesson-item"><span class="lesson-dot"></span>What counts as an emergency?</div><div class="lesson-item"><span class="lesson-dot"></span>Where to keep your fund</div><div class="lesson-item"><span class="lesson-dot"></span>Building it on a tight budget</div></div><div class="module-footer"><span class="lesson-count">3 LESSONS</span><span class="module-type">Video + Worksheet</span></div></div>
+      <div class="module-card reveal reveal-delay-3"><div class="module-num">MODULE 03</div><div class="module-title">Renting vs. Buying</div><p class="module-desc">Is homeownership right for you? Understanding mortgages, down payments, and the true cost of owning.</p><div class="module-lessons"><div class="lesson-item"><span class="lesson-dot"></span>The real cost of renting</div><div class="lesson-item"><span class="lesson-dot"></span>Mortgage basics</div><div class="lesson-item"><span class="lesson-dot"></span>When buying makes sense</div></div><div class="module-footer"><span class="lesson-count">4 LESSONS</span><span class="module-type">Calculator Tool</span></div></div>
+      <div class="module-card reveal reveal-delay-1"><div class="module-num">MODULE 04</div><div class="module-title">Tackling Debt</div><p class="module-desc">Snowball vs. avalanche — two proven strategies for paying off debt and getting free faster.</p><div class="module-lessons"><div class="lesson-item"><span class="lesson-dot"></span>Debt snowball method</div><div class="lesson-item"><span class="lesson-dot"></span>Debt avalanche method</div><div class="lesson-item"><span class="lesson-dot"></span>Negotiating lower interest rates</div></div><div class="module-footer"><span class="lesson-count">4 LESSONS</span><span class="module-type">Payoff Calculator</span></div></div>
+      <div class="module-card reveal reveal-delay-2"><div class="module-num">MODULE 05</div><div class="module-title">Investing 101</div><p class="module-desc">Index funds, compound interest, and why starting early is the greatest financial advantage you have.</p><div class="module-lessons"><div class="lesson-item"><span class="lesson-dot"></span>Stocks, bonds, and funds</div><div class="lesson-item"><span class="lesson-dot"></span>The power of compound interest</div><div class="lesson-item"><span class="lesson-dot"></span>Opening your first brokerage</div></div><div class="module-footer"><span class="lesson-count">5 LESSONS</span><span class="module-type">Video + Simulator</span></div></div>
+      <div class="module-card reveal reveal-delay-3"><div class="module-num">MODULE 06</div><div class="module-title">Retirement Planning</div><p class="module-desc">Understanding 401(k)s, IRAs, employer matches, and how to plan confidently for the future.</p><div class="module-lessons"><div class="lesson-item"><span class="lesson-dot"></span>What is a 401(k)?</div><div class="lesson-item"><span class="lesson-dot"></span>Roth vs. Traditional IRA</div><div class="lesson-item"><span class="lesson-dot"></span>Maximizing your employer match</div></div><div class="module-footer"><span class="lesson-count">4 LESSONS</span><span class="module-type">Guide</span></div></div>
+    </div>
+  </div>
+
+</section>
+
+<!-- LEARNING OUTCOMES -->
+<div class="outcomes-bar">
+  <div class="outcomes-inner">
+    <div class="reveal">
+      <span class="section-label">// What You'll Gain</span>
+      <h2 class="section-title">Real skills, real results</h2>
+      <p class="section-subtitle">Our curriculum is outcomes-driven. Every module is designed around a concrete skill you can use immediately.</p>
+      <br>
+      <a href="course.html" class="btn-primary" style="margin-top:1rem;">Start Learning Free →</a>
+    </div>
+    <div class="outcomes-list reveal reveal-delay-2">
+      <div class="outcome-item"><div class="outcome-check">✓</div><div class="outcome-text">Build and stick to a monthly budget</div></div>
+      <div class="outcome-item"><div class="outcome-check">✓</div><div class="outcome-text">Understand your credit score and improve it</div></div>
+      <div class="outcome-item"><div class="outcome-check">✓</div><div class="outcome-text">Open and manage a savings account</div></div>
+      <div class="outcome-item"><div class="outcome-check">✓</div><div class="outcome-text">Start an emergency fund from scratch</div></div>
+      <div class="outcome-item"><div class="outcome-check">✓</div><div class="outcome-text">Understand investing and compound growth</div></div>
+      <div class="outcome-item"><div class="outcome-check">✓</div><div class="outcome-text">Navigate health insurance and medical bills</div></div>
+      <div class="outcome-item"><div class="outcome-check">✓</div><div class="outcome-text">Create a debt payoff strategy</div></div>
+      <div class="outcome-item"><div class="outcome-check">✓</div><div class="outcome-text">Plan confidently for retirement</div></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-top">
+    <div class="footer-brand"><a href="index.html" class="nav-logo"><img src="logo.png" alt="Brightside" class="nav-logo-img"><span class="nav-brand"><span class="brand-primary">Bright</span><span class="brand-secondary">side</span></span></a><p class="footer-tagline">Financial literacy for every age, every background, every chapter of life. Free, always.</p></div>
+    <div class="footer-col"><h4>Pages</h4><ul><li><a href="about.html">About Us</a></li><li><a href="curriculum.html">Curriculum</a></li><li><a href="medical.html">Medical Finances</a></li><li><a href="course.html">Courses</a></li></ul></div>
+    <div class="footer-col"><h4>Programs</h4><ul><li><a href="curriculum.html">Money Sprouts</a></li><li><a href="curriculum.html">Smart Start</a></li><li><a href="curriculum.html">Financial Foundations</a></li></ul></div>
+    <div class="footer-col"><h4>Organization</h4><ul><li><a href="about.html">Our Story</a></li><li><a href="about.html#team">Our Team</a></li><li><a href="#">Annual Report</a></li><li><a href="#">Contact</a></li></ul></div>
+  </div>
+  <div class="footer-bottom"><span>© 2025 Brightside Foundation. 501(c)(3) Non-Profit.</span><div class="footer-social"><a href="#" class="social-link">𝕏</a><a href="#" class="social-link">in</a><a href="#" class="social-link">f</a><a href="#" class="social-link">▶</a></div></div>
+</footer>
+
+<script>
+  const reveals = document.querySelectorAll('.reveal');
+  const obs = new IntersectionObserver(entries => entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible'); }), {threshold:0.08});
+  reveals.forEach(el => obs.observe(el));
+
+  function filterPrograms(prog, btn) {
+    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.program-section').forEach(sec => {
+      if (prog === 'all' || sec.dataset.program === prog) {
+        sec.style.display = '';
+      } else {
+        sec.style.display = 'none';
+      }
+    });
+  }
+</script>
+<script>
+(function(){
+  // Scroll effect
+  var nav = document.getElementById('mainNav');
+  window.addEventListener('scroll', function(){
+    nav.classList.toggle('scrolled', window.scrollY > 40);
+  });
+  // Mark active page
+  var page = location.pathname.split('/').pop() || 'index.html';
+  var map = {'index.html':'nl-home','about.html':'nl-about','curriculum.html':'nl-curriculum','medical.html':'nl-medical','course.html':'nl-course'};
+  if(map[page]){ var el=document.getElementById(map[page]); if(el) el.classList.add('active'); }
+})();
+</script>
+</body>
+</html>

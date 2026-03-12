@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/png" href="logo.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Medical Finances — Brightside</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+  /* NAV PILL TABS */
+  .sticky-nav { position: sticky; top: 72px; z-index: 50; background: white; border-bottom: 1px solid rgba(57,87,49,0.08); padding: 0 4rem; display: flex; gap: 0.25rem; overflow-x: auto; }
+  .snav-btn { padding: 1rem 1.3rem; border: none; background: none; font-family: 'DM Sans', sans-serif; font-size: 0.85rem; font-weight: 500; color: #6b7280; cursor: pointer; white-space: nowrap; border-bottom: 3px solid transparent; transition: all 0.2s; }
+  .snav-btn:hover { color: var(--forest); }
+  .snav-btn.active { color: var(--forest); border-bottom-color: var(--rust); font-weight: 700; }
+
+  /* STAT STRIP */
+  .stat-strip { background: var(--rust); color: white; padding: 1.5rem 4rem; }
+  .stat-strip-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 3rem; align-items: center; }
+  .strip-stat { text-align: center; flex: 1; }
+  .strip-num { font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 900; display: block; }
+  .strip-label { font-size: 0.8rem; opacity: 0.85; }
+  .strip-divider { width: 1px; height: 50px; background: rgba(255,255,255,0.25); }
+
+  /* CONTENT SECTIONS */
+  .med-section { padding: 5rem 4rem; max-width: 1100px; margin: 0 auto; }
+  .med-section-header { margin-bottom: 3rem; }
+
+  /* TWO-COL LAYOUT */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: start; }
+  .three-col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+
+  /* INSURANCE SECTION */
+  .insurance-bg { background: var(--warm-white); }
+  .plan-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; margin-bottom: 2.5rem; }
+  .plan-card { background: white; border-radius: 16px; padding: 1.5rem; border: 2px solid rgba(57,87,49,0.07); transition: all 0.25s; cursor: pointer; }
+  .plan-card:hover, .plan-card.selected { border-color: var(--sage); box-shadow: 0 8px 32px rgba(57,87,49,0.1); }
+  .plan-card.selected { border-color: var(--forest); background: rgba(57,87,49,0.02); }
+  .plan-abbr { font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 900; color: var(--forest); display: block; margin-bottom: 0.5rem; }
+  .plan-name { font-weight: 700; font-size: 0.9rem; color: var(--forest); margin-bottom: 0.5rem; }
+  .plan-desc { font-size: 0.82rem; line-height: 1.55; color: #6b7280; margin-bottom: 1rem; }
+  .plan-pros-cons { display: flex; flex-direction: column; gap: 0.3rem; }
+  .pro { font-size: 0.8rem; color: var(--sage); display: flex; gap: 0.4rem; align-items: flex-start; }
+  .con { font-size: 0.8rem; color: var(--rust); display: flex; gap: 0.4rem; align-items: flex-start; }
+
+  .terms-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+  .term-card { background: white; border-radius: 14px; padding: 1.3rem; border: 1px solid rgba(57,87,49,0.06); }
+  .term-word { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700; color: var(--forest); margin-bottom: 0.3rem; }
+  .term-def { font-size: 0.82rem; line-height: 1.55; color: #6b7280; }
+  .term-example { font-size: 0.78rem; color: var(--sage); font-style: italic; margin-top: 0.3rem; }
+
+  /* MEDICAL DEBT SECTION */
+  .debt-bg { background: var(--cream); }
+  .steps-vertical { display: flex; flex-direction: column; gap: 0; }
+  .vstep { display: flex; gap: 1.5rem; padding-bottom: 2.5rem; position: relative; }
+  .vstep:not(:last-child)::after { content: ''; position: absolute; left: 20px; top: 52px; bottom: 0; width: 2px; background: rgba(122,107,58,0.2); }
+  .vstep-num { width: 42px; height: 42px; border-radius: 50%; background: var(--rust); color: white; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 0.9rem; flex-shrink: 0; z-index: 1; }
+  .vstep-body { padding-top: 0.5rem; }
+  .vstep-title { font-weight: 700; font-size: 1rem; color: var(--forest); margin-bottom: 0.4rem; }
+  .vstep-desc { font-size: 0.88rem; line-height: 1.6; color: #4a5568; }
+  .vstep-tip { background: rgba(122,107,58,0.08); border-left: 3px solid var(--rust); padding: 0.6rem 0.8rem; border-radius: 0 8px 8px 0; margin-top: 0.6rem; font-size: 0.8rem; color: var(--rust); }
+
+  .rights-list { display: flex; flex-direction: column; gap: 0.75rem; }
+  .right-item { background: white; border-radius: 12px; padding: 1.2rem; border: 1px solid rgba(57,87,49,0.06); display: flex; gap: 0.8rem; align-items: flex-start; }
+  .right-icon { font-size: 1.2rem; flex-shrink: 0; }
+  .right-title { font-weight: 700; font-size: 0.9rem; color: var(--forest); margin-bottom: 0.2rem; }
+  .right-desc { font-size: 0.82rem; line-height: 1.5; color: #6b7280; }
+
+  /* HSA/FSA */
+  .hsa-bg { background: var(--warm-white); }
+  .account-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; }
+  .account-card { border-radius: 20px; padding: 2rem; }
+  .account-card-hsa { background: var(--primary); color: var(--cream); }
+  .account-card-fsa { background: white; border: 2px solid rgba(57,87,49,0.1); }
+  .account-label { font-family: 'DM Mono', monospace; font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.6; margin-bottom: 0.5rem; }
+  .account-name { font-family: 'Playfair Display', serif; font-size: 1.6rem; font-weight: 900; margin-bottom: 0.3rem; }
+  .account-card-hsa .account-name { color: var(--gold-light); }
+  .account-card-fsa .account-name { color: var(--forest); }
+  .account-card-hsa .account-label { color: rgba(245,240,232,0.6); }
+  .account-card-fsa .account-label { color: #9ca3af; }
+  .account-full { font-size: 0.82rem; opacity: 0.7; margin-bottom: 1.2rem; }
+  .account-card-fsa .account-full { color: #6b7280; }
+  .account-features { display: flex; flex-direction: column; gap: 0.5rem; }
+  .acct-feat { font-size: 0.85rem; display: flex; gap: 0.5rem; }
+  .acct-feat-check { opacity: 0.7; }
+  .account-card-hsa .acct-feat { color: rgba(245,240,232,0.85); }
+  .account-card-fsa .acct-feat { color: #4a5568; }
+  .acct-limit { margin-top: 1.2rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1); }
+  .account-card-fsa .acct-limit { border-top-color: rgba(57,87,49,0.08); }
+  .acct-limit-num { font-family: 'Playfair Display', serif; font-size: 1.4rem; font-weight: 900; }
+  .account-card-hsa .acct-limit-num { color: var(--gold-light); }
+  .account-card-fsa .acct-limit-num { color: var(--forest); }
+  .acct-limit-label { font-size: 0.75rem; opacity: 0.6; }
+
+  .eligible-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
+  .eligible-item { background: white; border-radius: 10px; padding: 0.9rem; border: 1px solid rgba(57,87,49,0.06); font-size: 0.82rem; color: var(--forest); font-weight: 500; display: flex; gap: 0.5rem; align-items: center; }
+
+  /* HOSPITAL BILLS */
+  .hospital-bg { background: var(--cream); }
+  .bill-checklist { display: flex; flex-direction: column; gap: 0.75rem; }
+  .check-item { background: white; border-radius: 12px; padding: 1.1rem 1.3rem; border: 1px solid rgba(57,87,49,0.06); display: flex; gap: 0.9rem; align-items: flex-start; cursor: pointer; transition: all 0.2s; }
+  .check-item:hover { border-color: var(--sage); }
+  .check-box { width: 22px; height: 22px; border: 2px solid rgba(57,87,49,0.2); border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; transition: all 0.2s; font-size: 0.75rem; }
+  .check-item.checked .check-box { background: var(--sage); border-color: var(--sage); color: white; }
+  .check-label { font-size: 0.88rem; color: var(--forest); font-weight: 500; margin-bottom: 0.2rem; }
+  .check-desc { font-size: 0.8rem; color: #6b7280; line-height: 1.45; }
+
+  .negotiation-tips { display: flex; flex-direction: column; gap: 1rem; }
+  .ntip { background: white; border-radius: 14px; padding: 1.3rem; border-left: 4px solid var(--gold); }
+  .ntip-title { font-weight: 700; font-size: 0.9rem; color: var(--forest); margin-bottom: 0.3rem; display: flex; align-items: center; gap: 0.5rem; }
+  .ntip-desc { font-size: 0.83rem; line-height: 1.55; color: #4a5568; }
+  .ntip-script { background: rgba(168,172,148,0.08); border-radius: 8px; padding: 0.7rem; margin-top: 0.5rem; font-size: 0.8rem; color: #6b7280; font-style: italic; }
+
+  /* EMERGENCY SAVINGS */
+  .emergency-bg { background: var(--warm-white); }
+  .emergency-calc { background: white; border-radius: 20px; padding: 2rem; border: 1px solid rgba(57,87,49,0.08); max-width: 500px; }
+  .calc-title { font-family: 'Playfair Display', serif; font-size: 1.2rem; font-weight: 700; color: var(--forest); margin-bottom: 1.5rem; }
+  .calc-field { margin-bottom: 1.2rem; }
+  .calc-label { font-size: 0.82rem; font-weight: 600; color: var(--forest); margin-bottom: 0.4rem; display: block; }
+  .calc-input { width: 100%; padding: 0.7rem 1rem; border: 2px solid rgba(57,87,49,0.12); border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 0.95rem; outline: none; transition: border-color 0.2s; }
+  .calc-input:focus { border-color: var(--sage); }
+  .calc-result { background: var(--primary); border-radius: 14px; padding: 1.3rem; color: var(--cream); margin-top: 1.5rem; }
+  .calc-result-label { font-size: 0.78rem; opacity: 0.7; margin-bottom: 0.3rem; font-family: 'DM Mono', monospace; letter-spacing: 0.08em; }
+  .calc-result-num { font-family: 'Playfair Display', serif; font-size: 2.2rem; font-weight: 900; color: var(--gold-light); }
+  .calc-result-sub { font-size: 0.8rem; opacity: 0.7; margin-top: 0.3rem; }
+
+  .savings-tips { display: flex; flex-direction: column; gap: 1rem; }
+  .stip { display: flex; gap: 1rem; align-items: flex-start; padding: 1.2rem; background: white; border-radius: 14px; border: 1px solid rgba(57,87,49,0.06); }
+  .stip-icon { font-size: 1.4rem; flex-shrink: 0; }
+  .stip-title { font-weight: 700; font-size: 0.9rem; color: var(--forest); margin-bottom: 0.2rem; }
+  .stip-desc { font-size: 0.83rem; line-height: 1.5; color: #6b7280; }
+
+  /* SECTION DIVIDERS */
+  .section-wrapper { }
+  .section-wrapper:nth-child(even) { background: var(--cream); }
+
+  @media (max-width: 900px) {
+    .sticky-nav { padding: 0 1.5rem; }
+    .stat-strip { padding: 1.5rem; }
+    .stat-strip-inner { gap: 1.5rem; flex-wrap: wrap; }
+    .strip-divider { display: none; }
+    .med-section { padding: 3rem 1.5rem; }
+    .two-col { grid-template-columns: 1fr; }
+    .three-col { grid-template-columns: 1fr 1fr; }
+    .plan-cards { grid-template-columns: 1fr; }
+    .terms-grid { grid-template-columns: 1fr; }
+    .account-compare { grid-template-columns: 1fr; }
+    .eligible-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<nav id="mainNav">
+  <a href="index.html" class="nav-logo"><img src="logo.png" alt="Brightside" class="nav-logo-img"><span class="nav-brand"><span class="brand-primary">Bright</span><span class="brand-secondary">side</span></span></a>
+  <ul class="nav-links">
+    <li><a href="index.html" id="nl-home">Home</a></li>
+    <li><a href="about.html" id="nl-about">About Us</a></li>
+    <li><a href="curriculum.html" id="nl-curriculum">Curriculum</a></li>
+    <li><a href="medical.html" id="nl-medical">Medical Finances</a></li>
+    <li><a href="course.html" id="nl-course">Courses</a></li>
+    <li><a href="https://donorbox.org/brightside-finance-operations" class="nav-cta">Donate</a></li>
+  </ul>
+  <button class="nav-hamburger" onclick="document.getElementById('mobileMenu').classList.add('open')" aria-label="Open menu">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+<div class="mobile-menu" id="mobileMenu">
+  <button class="mobile-close" onclick="document.getElementById('mobileMenu').classList.remove('open')">✕</button>
+  <a href="index.html" onclick="document.getElementById('mobileMenu').classList.remove('open')">Home</a>
+  <a href="about.html" onclick="document.getElementById('mobileMenu').classList.remove('open')">About Us</a>
+  <a href="curriculum.html" onclick="document.getElementById('mobileMenu').classList.remove('open')">Curriculum</a>
+  <a href="medical.html" onclick="document.getElementById('mobileMenu').classList.remove('open')">Medical Finances</a>
+  <a href="course.html" onclick="document.getElementById('mobileMenu').classList.remove('open')">Courses</a>
+  <a href="https://donorbox.org/brightside-finance-operations" onclick="document.getElementById('mobileMenu').classList.remove('open')" style="color:var(--primary);background:var(--secondary);padding:0.6rem 1.8rem;border-radius:100px;font-size:1rem;">Donate</a>
+</div>
+<div class="page-hero" style="background:linear-gradient(135deg, #2d1010 0%, #395731 100%);">
+  <div class="page-hero-grid" style="opacity:0.4;"></div>
+  <div class="page-hero-inner">
+    <span class="page-hero-eyebrow" style="color:rgba(255,255,255,0.8);background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.2);">Medical Financial Literacy</span>
+    <h1 style="color:white;">Healthcare shouldn't cost you <em style="color:var(--gold-light);">everything</em></h1>
+    <p style="color:rgba(255,255,255,0.75);">Medical debt is the #1 cause of personal bankruptcy in America. We'll teach you how to understand your coverage, fight unfair bills, build a safety net, and never get blindsided by healthcare costs again.</p>
+  </div>
+</div>
+
+<!-- STICKY NAV -->
+<div class="sticky-nav">
+  <button class="snav-btn active" onclick="scrollToSection('insurance', this)">🏥 Health Insurance</button>
+  <button class="snav-btn" onclick="scrollToSection('debt', this)">💳 Medical Debt</button>
+  <button class="snav-btn" onclick="scrollToSection('hsa', this)">🏦 HSA & FSA</button>
+  <button class="snav-btn" onclick="scrollToSection('hospital', this)">🧾 Hospital Bills</button>
+  <button class="snav-btn" onclick="scrollToSection('emergency', this)">🛡️ Emergency Savings</button>
+</div>
+
+<!-- STAT STRIP -->
+<div class="stat-strip">
+  <div class="stat-strip-inner">
+    <div class="strip-stat"><span class="strip-num">$1 in $5</span><span class="strip-label">Americans has medical debt</span></div>
+    <div class="strip-divider"></div>
+    <div class="strip-stat"><span class="strip-num">$2,500</span><span class="strip-label">Average unexpected medical expense</span></div>
+    <div class="strip-divider"></div>
+    <div class="strip-stat"><span class="strip-num">67%</span><span class="strip-label">Of bankruptcies tied to medical costs</span></div>
+    <div class="strip-divider"></div>
+    <div class="strip-stat"><span class="strip-num">$0</span><span class="strip-label">Cost to dispute an incorrect bill</span></div>
+  </div>
+</div>
+
+<!-- HEALTH INSURANCE -->
+<div class="insurance-bg section-wrapper" id="insurance">
+  <div class="med-section">
+    <div class="med-section-header reveal">
+      <span class="section-label">// 01 — Health Insurance Basics</span>
+      <h2 class="section-title">Understanding your coverage</h2>
+      <p class="section-subtitle">Health insurance is confusing by design. Here's what you actually need to know before you choose a plan.</p>
+    </div>
+
+    <div class="plan-cards reveal">
+      <div class="plan-card selected" onclick="selectPlan(this)">
+        <span class="plan-abbr">HMO</span>
+        <div class="plan-name">Health Maintenance Organization</div>
+        <p class="plan-desc">Requires a primary care doctor and referrals to see specialists. Lower premiums, but less flexibility.</p>
+        <div class="plan-pros-cons">
+          <div class="pro">✓ Lower monthly premiums</div>
+          <div class="pro">✓ Lower out-of-pocket costs</div>
+          <div class="con">✗ Must use in-network doctors</div>
+          <div class="con">✗ Need referrals for specialists</div>
+        </div>
+      </div>
+      <div class="plan-card" onclick="selectPlan(this)">
+        <span class="plan-abbr">PPO</span>
+        <div class="plan-name">Preferred Provider Organization</div>
+        <p class="plan-desc">More flexibility to see any doctor — in or out of network — without a referral. Higher premiums.</p>
+        <div class="plan-pros-cons">
+          <div class="pro">✓ See any doctor, no referral</div>
+          <div class="pro">✓ Out-of-network coverage</div>
+          <div class="con">✗ Higher monthly premiums</div>
+          <div class="con">✗ More paperwork & claims</div>
+        </div>
+      </div>
+      <div class="plan-card" onclick="selectPlan(this)">
+        <span class="plan-abbr">HDHP</span>
+        <div class="plan-name">High-Deductible Health Plan</div>
+        <p class="plan-desc">Very low premiums but a high deductible. Best paired with an HSA to build a medical savings fund.</p>
+        <div class="plan-pros-cons">
+          <div class="pro">✓ Lowest monthly premium</div>
+          <div class="pro">✓ HSA-eligible — triple tax benefit</div>
+          <div class="con">✗ High deductible ($1,600+)</div>
+          <div class="con">✗ Risky if you have high medical needs</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="two-col reveal reveal-delay-1">
+      <div>
+        <h3 style="font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--forest);margin-bottom:1.2rem;">Key terms you must know</h3>
+        <div class="terms-grid">
+          <div class="term-card"><div class="term-word">Premium</div><div class="term-def">Your monthly payment for insurance coverage, whether or not you use healthcare.</div><div class="term-example">e.g. $280/month paid from your paycheck</div></div>
+          <div class="term-card"><div class="term-word">Deductible</div><div class="term-def">What you pay before your insurance starts covering costs.</div><div class="term-example">e.g. You pay first $1,500, then insurance kicks in</div></div>
+          <div class="term-card"><div class="term-word">Copay</div><div class="term-def">A fixed amount you pay for a specific service, like a doctor visit.</div><div class="term-example">e.g. $30 every time you see your PCP</div></div>
+          <div class="term-card"><div class="term-word">Out-of-Pocket Max</div><div class="term-def">The most you'll ever pay in a year. After this, insurance covers 100%.</div><div class="term-example">e.g. $6,500 max — then you pay nothing more</div></div>
+          <div class="term-card"><div class="term-word">Coinsurance</div><div class="term-def">Your share of costs after meeting your deductible, expressed as a percentage.</div><div class="term-example">e.g. 20% coinsurance — you pay $200 on a $1,000 bill</div></div>
+          <div class="term-card"><div class="term-word">In-Network</div><div class="term-def">Doctors or facilities with contracts with your insurance plan — far cheaper for you.</div><div class="term-example">Always verify a provider is in-network before visiting</div></div>
+        </div>
+      </div>
+      <div>
+        <h3 style="font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--forest);margin-bottom:1.2rem;">How to choose the right plan</h3>
+        <div class="steps-vertical" style="padding-left:1rem;">
+          <div class="vstep"><div class="vstep-num" style="background:var(--sage);">1</div><div class="vstep-body"><div class="vstep-title">Estimate your annual healthcare use</div><div class="vstep-desc">How often do you see doctors? Take prescriptions? Have planned procedures? Your history predicts your needs.</div></div></div>
+          <div class="vstep"><div class="vstep-num" style="background:var(--sage);">2</div><div class="vstep-body"><div class="vstep-title">Calculate total cost — not just premium</div><div class="vstep-desc">Add premium × 12 + estimated out-of-pocket costs. A cheap premium can hide an expensive deductible.</div></div></div>
+          <div class="vstep"><div class="vstep-num" style="background:var(--sage);">3</div><div class="vstep-body"><div class="vstep-title">Check your doctors are in-network</div><div class="vstep-desc">Before enrolling, verify your preferred doctors accept the plan. This one step can save thousands.</div></div></div>
+          <div class="vstep" style="padding-bottom:0;"><div class="vstep-num" style="background:var(--sage);">4</div><div class="vstep-body"><div class="vstep-title">Consider an HDHP + HSA combo</div><div class="vstep-desc">If you're healthy and can afford higher cost-sharing, this combo saves money via triple tax benefits.</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MEDICAL DEBT -->
+<div class="debt-bg section-wrapper" id="debt">
+  <div class="med-section">
+    <div class="med-section-header reveal">
+      <span class="section-label">// 02 — Managing Medical Debt</span>
+      <h2 class="section-title">You have more power than you think</h2>
+      <p class="section-subtitle">Medical bills are often negotiable, frequently wrong, and rarely require immediate full payment. Here's your action plan.</p>
+    </div>
+    <div class="two-col">
+      <div class="reveal">
+        <h3 style="font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--forest);margin-bottom:1.5rem;">Step-by-step: When you get a large bill</h3>
+        <div class="steps-vertical">
+          <div class="vstep"><div class="vstep-num">1</div><div class="vstep-body"><div class="vstep-title">Don't pay immediately</div><div class="vstep-desc">Wait for your Explanation of Benefits (EOB) from your insurer. The bill and EOB should match.</div><div class="vstep-tip">💡 Paying too fast can waive your right to dispute errors</div></div></div>
+          <div class="vstep"><div class="vstep-num">2</div><div class="vstep-body"><div class="vstep-title">Request an itemized bill</div><div class="vstep-desc">Ask the hospital's billing department for a full line-by-line breakdown. Studies show 80% of medical bills contain errors.</div></div></div>
+          <div class="vstep"><div class="vstep-num">3</div><div class="vstep-body"><div class="vstep-title">Dispute errors in writing</div><div class="vstep-desc">If you find mistakes, send a written dispute to both the hospital and your insurance company. Keep copies of everything.</div></div></div>
+          <div class="vstep"><div class="vstep-num">4</div><div class="vstep-body"><div class="vstep-title">Negotiate the remaining balance</div><div class="vstep-desc">Most hospitals will accept 40–60 cents on the dollar if you can pay a lump sum. Always ask.</div><div class="vstep-tip">💡 Nonprofit hospitals must offer charity care — ask explicitly</div></div></div>
+          <div class="vstep" style="padding-bottom:0;"><div class="vstep-num">5</div><div class="vstep-body"><div class="vstep-title">Set up a payment plan</div><div class="vstep-desc">If you can't pay in full, request a payment plan. Many hospitals offer 0% interest plans — always ask before using a credit card.</div></div></div>
+        </div>
+      </div>
+      <div class="reveal reveal-delay-2">
+        <h3 style="font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--forest);margin-bottom:1.5rem;">Your rights as a patient</h3>
+        <div class="rights-list">
+          <div class="right-item"><span class="right-icon">📋</span><div><div class="right-title">Right to an itemized bill</div><div class="right-desc">You can always request a complete, line-by-line breakdown of any medical bill. Hospitals are required to provide it.</div></div></div>
+          <div class="right-item"><span class="right-icon">🛑</span><div><div class="right-title">Protection from surprise billing</div><div class="right-desc">The No Surprises Act (2022) limits unexpected out-of-network charges at in-network facilities.</div></div></div>
+          <div class="right-item"><span class="right-icon">⚖️</span><div><div class="right-title">Right to dispute & appeal</div><div class="right-desc">You can appeal any insurance denial. Over 40% of appeals are successful — most people just don't try.</div></div></div>
+          <div class="right-item"><span class="right-icon">🏥</span><div><div class="right-title">Charity care at nonprofits</div><div class="right-desc">Nonprofit hospitals receive tax exemptions in exchange for providing free or reduced care. You may qualify regardless of income level.</div></div></div>
+          <div class="right-item"><span class="right-icon">📞</span><div><div class="right-title">Medical billing advocacy</div><div class="right-desc">Free patient advocates can negotiate on your behalf. Contact your state's insurance commissioner or a nonprofit patient advocate.</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HSA / FSA -->
+<div class="hsa-bg section-wrapper" id="hsa">
+  <div class="med-section">
+    <div class="med-section-header reveal">
+      <span class="section-label">// 03 — HSA & FSA Accounts</span>
+      <h2 class="section-title">Tax-free healthcare savings</h2>
+      <p class="section-subtitle">These accounts let you pay for medical expenses with pre-tax dollars — effectively giving you a 20–37% discount on healthcare costs.</p>
+    </div>
+    <div class="account-compare reveal">
+      <div class="account-card account-card-hsa">
+        <div class="account-label">Health Savings Account</div>
+        <div class="account-name">HSA</div>
+        <div class="account-full">For people with High-Deductible Health Plans</div>
+        <div class="account-features">
+          <div class="acct-feat"><span class="acct-feat-check">✓</span> Triple tax benefit: pre-tax contributions, tax-free growth, tax-free withdrawals</div>
+          <div class="acct-feat"><span class="acct-feat-check">✓</span> Money rolls over year to year — never expires</div>
+          <div class="acct-feat"><span class="acct-feat-check">✓</span> Invests like a retirement account — grows over time</div>
+          <div class="acct-feat"><span class="acct-feat-check">✓</span> Can be used for retirement at age 65</div>
+          <div class="acct-feat"><span>✗</span> Must have an HDHP to contribute</div>
+        </div>
+        <div class="acct-limit">
+          <div class="acct-limit-num">$4,300 / $8,550</div>
+          <div class="acct-limit-label">2025 contribution limits (individual / family)</div>
+        </div>
+      </div>
+      <div class="account-card account-card-fsa">
+        <div class="account-label">Flexible Spending Account</div>
+        <div class="account-name" style="color:var(--forest);">FSA</div>
+        <div class="account-full" style="color:#6b7280;">Available with most employer health plans</div>
+        <div class="account-features">
+          <div class="acct-feat"><span style="color:var(--sage)">✓</span> Pre-tax contributions reduce your taxable income</div>
+          <div class="acct-feat"><span style="color:var(--sage)">✓</span> Works with any employer health plan (not just HDHP)</div>
+          <div class="acct-feat"><span style="color:var(--sage)">✓</span> Entire annual election available on day 1</div>
+          <div class="acct-feat"><span style="color:var(--rust)">✗</span> "Use it or lose it" — funds expire at year end</div>
+          <div class="acct-feat"><span style="color:var(--rust)">✗</span> Cannot invest the balance</div>
+        </div>
+        <div class="acct-limit" style="border-top-color:rgba(57,87,49,0.08)">
+          <div class="acct-limit-num" style="color:var(--forest);">$3,300</div>
+          <div class="acct-limit-label" style="color:#9ca3af;">2025 contribution limit</div>
+        </div>
+      </div>
+    </div>
+    <div class="reveal reveal-delay-1">
+      <h3 style="font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--forest);margin-bottom:1.2rem;">What you can pay for tax-free</h3>
+      <div class="eligible-grid">
+        <div class="eligible-item">💊 Prescriptions & OTC drugs</div>
+        <div class="eligible-item">👁️ Glasses & contact lenses</div>
+        <div class="eligible-item">🦷 Dental care & braces</div>
+        <div class="eligible-item">🩺 Doctor visit copays</div>
+        <div class="eligible-item">🧪 Lab tests & diagnostics</div>
+        <div class="eligible-item">🩹 Medical equipment</div>
+        <div class="eligible-item">🧘 Mental health therapy</div>
+        <div class="eligible-item">🤰 Fertility treatments</div>
+        <div class="eligible-item">💉 Vaccines & preventive care</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HOSPITAL BILLS -->
+<div class="hospital-bg section-wrapper" id="hospital">
+  <div class="med-section">
+    <div class="med-section-header reveal">
+      <span class="section-label">// 04 — Navigating Hospital Bills</span>
+      <h2 class="section-title">Audit your bill before you pay a penny</h2>
+      <p class="section-subtitle">Up to 80% of hospital bills contain errors. This checklist and these negotiation scripts can save you thousands.</p>
+    </div>
+    <div class="two-col">
+      <div class="reveal">
+        <h3 style="font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--forest);margin-bottom:1.2rem;">Hospital bill audit checklist</h3>
+        <div class="bill-checklist" id="checklist">
+          <div class="check-item" onclick="toggleCheck(this)"><div class="check-box"></div><div><div class="check-label">Request the itemized bill</div><div class="check-desc">Ask for a complete line-by-line breakdown — not just a summary. This is your legal right.</div></div></div>
+          <div class="check-item" onclick="toggleCheck(this)"><div class="check-box"></div><div><div class="check-label">Compare bill to Explanation of Benefits</div><div class="check-desc">Your EOB from insurance shows what should be covered. The numbers should align.</div></div></div>
+          <div class="check-item" onclick="toggleCheck(this)"><div class="check-box"></div><div><div class="check-label">Check for duplicate charges</div><div class="check-desc">Look for the same service billed more than once — common with daily room charges and lab tests.</div></div></div>
+          <div class="check-item" onclick="toggleCheck(this)"><div class="check-box"></div><div><div class="check-label">Verify all providers were in-network</div><div class="check-desc">Sometimes an out-of-network doctor operates inside an in-network hospital. Check each provider.</div></div></div>
+          <div class="check-item" onclick="toggleCheck(this)"><div class="check-box"></div><div><div class="check-label">Look for upcoding errors</div><div class="check-desc">Billed for a deluxe room when you had a standard one? A specialist when you saw a resident? These are billing errors.</div></div></div>
+          <div class="check-item" onclick="toggleCheck(this)"><div class="check-box"></div><div><div class="check-label">Confirm services were actually received</div><div class="check-desc">Patients are sometimes charged for services they didn't receive, especially during long stays.</div></div></div>
+          <div class="check-item" onclick="toggleCheck(this)"><div class="check-box"></div><div><div class="check-label">Ask about financial assistance programs</div><div class="check-desc">Before paying anything, ask if the hospital has charity care, sliding-scale fees, or hardship programs.</div></div></div>
+        </div>
+      </div>
+      <div class="reveal reveal-delay-2">
+        <h3 style="font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--forest);margin-bottom:1.2rem;">Negotiation strategies that work</h3>
+        <div class="negotiation-tips">
+          <div class="ntip"><div class="ntip-title">💬 Ask for the cash-pay discount</div><div class="ntip-desc">Hospitals often charge uninsured rates that are negotiable. Even if insured, ask what the cash rate would be.</div><div class="ntip-script">"I'd like to pay this bill, but I need to understand if there's a prompt-pay or cash discount available."</div></div>
+          <div class="ntip"><div class="ntip-title">📞 Call the billing department directly</div><div class="ntip-desc">Skip the front desk. Billing departments have authority to reduce balances that customer service reps don't.</div><div class="ntip-script">"I'd like to speak with someone in the billing department who can discuss settlement options."</div></div>
+          <div class="ntip"><div class="ntip-title">💵 Offer a lump-sum settlement</div><div class="ntip-desc">Hospitals would rather get 50% now than 0% from collections. A lump-sum offer under the billed amount is often accepted.</div><div class="ntip-script">"I'm able to pay $[X] today as a full and final settlement of this balance. Can you approve that?"</div></div>
+          <div class="ntip"><div class="ntip-title">📄 Request 0% payment plan</div><div class="ntip-desc">Most hospitals offer interest-free payment plans. Always ask before putting a medical bill on a credit card.</div><div class="ntip-script">"I'd like to set up a payment plan. Do you offer 0% interest options?"</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EMERGENCY SAVINGS -->
+<div class="emergency-bg section-wrapper" id="emergency">
+  <div class="med-section">
+    <div class="med-section-header reveal">
+      <span class="section-label">// 05 — Emergency Medical Savings</span>
+      <h2 class="section-title">Build your medical safety net</h2>
+      <p class="section-subtitle">The best protection against medical debt is having money set aside before a crisis hits. Here's how to build it strategically.</p>
+    </div>
+    <div class="two-col">
+      <div class="reveal">
+        <div class="emergency-calc">
+          <div class="calc-title">🛡️ Medical Emergency Fund Calculator</div>
+          <div class="calc-field">
+            <label class="calc-label">Your annual deductible ($)</label>
+            <input type="number" class="calc-input" id="deductible" value="1600" oninput="calcEmergency()">
+          </div>
+          <div class="calc-field">
+            <label class="calc-label">Your out-of-pocket maximum ($)</label>
+            <input type="number" class="calc-input" id="oop" value="6500" oninput="calcEmergency()">
+          </div>
+          <div class="calc-field">
+            <label class="calc-label">Monthly income ($)</label>
+            <input type="number" class="calc-input" id="income" value="4000" oninput="calcEmergency()">
+          </div>
+          <div class="calc-result" id="calcResult">
+            <div class="calc-result-label">RECOMMENDED MEDICAL EMERGENCY FUND</div>
+            <div class="calc-result-num" id="resultNum">$6,500</div>
+            <div class="calc-result-sub" id="resultSub">Your out-of-pocket max — the worst-case scenario you'd ever pay</div>
+          </div>
+        </div>
+      </div>
+      <div class="reveal reveal-delay-2">
+        <h3 style="font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--forest);margin-bottom:1.5rem;">How to build your medical safety net</h3>
+        <div class="savings-tips">
+          <div class="stip"><span class="stip-icon">🎯</span><div><div class="stip-title">Start with your deductible as goal #1</div><div class="stip-desc">Can't save the full OOP max right away? Start by saving just your deductible. That covers most emergencies.</div></div></div>
+          <div class="stip"><span class="stip-icon">🏦</span><div><div class="stip-title">Use an HSA as your primary vehicle</div><div class="stip-desc">If you have an HDHP, max your HSA first. It's the most tax-efficient medical savings account available.</div></div></div>
+          <div class="stip"><span class="stip-icon">🔄</span><div><div class="stip-title">Automate a small monthly transfer</div><div class="stip-desc">Even $50/month builds $600/year. Set up an automatic transfer to a dedicated high-yield savings account.</div></div></div>
+          <div class="stip"><span class="stip-icon">💰</span><div><div class="stip-title">Use windfalls strategically</div><div class="stip-desc">Tax refunds, bonuses, and gifts are perfect opportunities to build your medical fund quickly.</div></div></div>
+          <div class="stip"><span class="stip-icon">📈</span><div><div class="stip-title">Invest your HSA after a cash buffer</div><div class="stip-desc">Once you have your deductible in cash in your HSA, invest the rest in index funds for long-term growth.</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAKE THE COURSE CTA -->
+<div style="background:var(--forest);text-align:center;padding:5rem 4rem;position:relative;overflow:hidden;">
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 50% 100%,rgba(142,186,126,0.15) 0%,transparent 60%);"></div>
+  <div style="position:relative;z-index:1;max-width:600px;margin:0 auto;" class="reveal">
+    <span class="section-label">// Take It Further</span>
+    <h2 style="font-family:'Playfair Display',serif;font-size:2.2rem;font-weight:900;color:var(--cream);margin-bottom:1rem;">Ready to master medical finances?</h2>
+    <p style="color:rgba(245,240,232,0.7);margin-bottom:2rem;line-height:1.7;">Take our full Medical Finances course — guided video lessons, worksheets, and a personalized action plan. Free, as always.</p>
+    <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
+      <a href="course.html" class="btn-gold">Start the Course →</a>
+      <a href="curriculum.html" class="btn-secondary" style="color:var(--cream);border-color:rgba(255,255,255,0.3);">Browse All Programs</a>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-top">
+    <div class="footer-brand"><a href="index.html" class="nav-logo"><img src="logo.png" alt="Brightside" class="nav-logo-img"><span class="nav-brand"><span class="brand-primary">Bright</span><span class="brand-secondary">side</span></span></a><p class="footer-tagline">Financial literacy for every age, every background, every chapter of life. Free, always.</p></div>
+    <div class="footer-col"><h4>Pages</h4><ul><li><a href="about.html">About Us</a></li><li><a href="curriculum.html">Curriculum</a></li><li><a href="medical.html">Medical Finances</a></li><li><a href="course.html">Courses</a></li></ul></div>
+    <div class="footer-col"><h4>On This Page</h4><ul><li><a href="#insurance">Health Insurance</a></li><li><a href="#debt">Medical Debt</a></li><li><a href="#hsa">HSA & FSA</a></li><li><a href="#hospital">Hospital Bills</a></li><li><a href="#emergency">Emergency Savings</a></li></ul></div>
+    <div class="footer-col"><h4>Organization</h4><ul><li><a href="about.html">Our Story</a></li><li><a href="about.html#team">Our Team</a></li><li><a href="#">Annual Report</a></li><li><a href="#">Contact</a></li></ul></div>
+  </div>
+  <div class="footer-bottom"><span>© 2025 Brightside Foundation. 501(c)(3) Non-Profit.</span><div class="footer-social"><a href="#" class="social-link">𝕏</a><a href="#" class="social-link">in</a><a href="#" class="social-link">f</a><a href="#" class="social-link">▶</a></div></div>
+</footer>
+
+<script>
+  const reveals = document.querySelectorAll('.reveal');
+  const obs = new IntersectionObserver(entries => entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible'); }), {threshold:0.08});
+  reveals.forEach(el => obs.observe(el));
+
+  function selectPlan(card) {
+    document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+  }
+
+  function toggleCheck(item) {
+    item.classList.toggle('checked');
+    const box = item.querySelector('.check-box');
+    box.textContent = item.classList.contains('checked') ? '✓' : '';
+  }
+
+  function scrollToSection(id, btn) {
+    document.querySelectorAll('.snav-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(id).scrollIntoView({behavior: 'smooth', block: 'start'});
+  }
+
+  function calcEmergency() {
+    const deductible = parseFloat(document.getElementById('deductible').value) || 0;
+    const oop = parseFloat(document.getElementById('oop').value) || 0;
+    const income = parseFloat(document.getElementById('income').value) || 0;
+    const recommended = Math.max(deductible, Math.min(oop, income * 1.5));
+    document.getElementById('resultNum').textContent = '$' + Math.round(recommended).toLocaleString();
+    if (recommended <= deductible) {
+      document.getElementById('resultSub').textContent = 'Start here — this covers your deductible in an emergency';
+    } else {
+      document.getElementById('resultSub').textContent = 'Your out-of-pocket max — the worst-case scenario fully covered';
+    }
+  }
+</script>
+<script>
+(function(){
+  // Scroll effect
+  var nav = document.getElementById('mainNav');
+  window.addEventListener('scroll', function(){
+    nav.classList.toggle('scrolled', window.scrollY > 40);
+  });
+  // Mark active page
+  var page = location.pathname.split('/').pop() || 'index.html';
+  var map = {'index.html':'nl-home','about.html':'nl-about','curriculum.html':'nl-curriculum','medical.html':'nl-medical','course.html':'nl-course'};
+  if(map[page]){ var el=document.getElementById(map[page]); if(el) el.classList.add('active'); }
+})();
+</script>
+</body>
+</html>

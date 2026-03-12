@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/png" href="logo.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>About Us — Brightside</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+  /* MISSION SPLIT */
+  .mission { background: var(--warm-white); }
+  .mission-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 5rem; align-items: center; max-width: 1100px; margin: 0 auto; }
+  .mission-visual { position: relative; }
+  .mission-img-stack { position: relative; height: 420px; }
+  .mission-card-big {
+    position: absolute; top: 0; left: 0; right: 40px;
+    background: var(--primary); border-radius: 24px; height: 300px;
+    display: flex; flex-direction: column; justify-content: flex-end; padding: 2rem;
+    overflow: hidden;
+  }
+  .mission-card-big::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(ellipse 70% 70% at 80% 20%, rgba(142,186,126,0.25) 0%, transparent 60%);
+  }
+  .mission-card-big-text { position: relative; z-index: 1; }
+  .mission-card-big-num { font-family: 'Playfair Display', serif; font-size: 3.5rem; font-weight: 900; color: var(--gold-light); line-height: 1; }
+  .mission-card-big-label { color: rgba(245,240,232,0.7); font-size: 0.9rem; margin-top: 0.3rem; }
+  .mission-card-small {
+    position: absolute; bottom: 0; right: 0; width: 200px;
+    background: white; border-radius: 18px; padding: 1.5rem;
+    box-shadow: 0 16px 48px rgba(57,87,49,0.12);
+    border: 1px solid rgba(57,87,49,0.06);
+  }
+  .small-icon { font-size: 1.8rem; margin-bottom: 0.5rem; display: block; }
+  .small-num { font-family: 'Playfair Display', serif; font-size: 1.8rem; font-weight: 900; color: var(--forest); }
+  .small-label { font-size: 0.78rem; color: #9ca3af; }
+  .year-badge {
+    position: absolute; top: -16px; right: 80px;
+    background: var(--gold); color: var(--forest);
+    border-radius: 12px; padding: 0.6rem 1rem;
+    font-weight: 700; font-size: 0.88rem;
+    box-shadow: 0 4px 16px rgba(168,172,148,0.3);
+  }
+  .mission-text .section-subtitle { margin-bottom: 1.5rem; }
+  .mission-values { display: flex; flex-direction: column; gap: 1rem; margin-top: 2rem; }
+  .value-item { display: flex; gap: 1rem; align-items: flex-start; }
+  .value-icon { width: 40px; height: 40px; border-radius: 10px; background: rgba(142,186,126,0.15); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; }
+  .value-title { font-weight: 700; font-size: 0.9rem; color: var(--forest); margin-bottom: 0.2rem; }
+  .value-desc { font-size: 0.84rem; color: #6b7280; line-height: 1.5; }
+
+  /* STORY TIMELINE */
+  .story { background: var(--cream); }
+  .story-inner { max-width: 800px; margin: 3rem auto 0; }
+  .timeline { position: relative; padding-left: 2.5rem; }
+  .timeline::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: linear-gradient(180deg, var(--mint), var(--gold), var(--sage)); border-radius: 2px; }
+  .timeline-item { position: relative; margin-bottom: 3rem; }
+  .timeline-dot { position: absolute; left: -2.9rem; top: 4px; width: 16px; height: 16px; border-radius: 50%; background: var(--gold); border: 3px solid white; box-shadow: 0 0 0 3px rgba(168,172,148,0.3); }
+  .timeline-year { font-family: 'DM Mono', monospace; font-size: 0.72rem; letter-spacing: 0.12em; color: var(--gold); text-transform: uppercase; margin-bottom: 0.4rem; }
+  .timeline-title { font-family: 'Playfair Display', serif; font-size: 1.2rem; font-weight: 700; color: var(--forest); margin-bottom: 0.5rem; }
+  .timeline-desc { font-size: 0.9rem; line-height: 1.65; color: #6b7280; }
+
+  /* TEAM */
+  .team { background: var(--warm-white); }
+  .team-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1.5rem; max-width: 1100px; margin: 3rem auto 0; justify-items: center; }  .team-card:hover { transform: translateY(-6px); box-shadow: 0 20px 60px rgba(57,87,49,0.1); }
+  .team-avatar { width: 160px; height: 160px; border-radius: 50%; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 700; }
+  .team-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%;}
+  .av-teal { background: rgba(142,186,126,0.2); color: var(--sage); }
+  .av-gold { background: rgba(168,172,148,0.2); color: #8a6a10; }
+  .av-rust { background: rgba(122,107,58,0.15); color: var(--rust); }
+  .av-forest { background: rgba(57,87,49,0.1); color: var(--forest); }
+  .av-purple { background: rgba(123,104,238,0.1); color: #5a4de0; }
+  .av-blue { background: rgba(59,130,246,0.12); color: #2563eb; }
+  .av-pink { background: rgba(236,72,153,0.1); color: #be185d; }
+  .av-lime { background: rgba(132,204,22,0.12); color: #4d7c0f; }
+  .team-name { font-family: 'Playfair Display', serif; font-size: 1.1rem; font-weight: 700; color: var(--forest); margin-bottom: 0.25rem; }
+  .team-role { font-size: 0.8rem; color: var(--sage); font-weight: 600; margin-bottom: 0.6rem; }
+  .team-bio { font-size: 0.82rem; line-height: 1.55; color: #6b7280; }
+
+  /* PARTNERS */
+  .partners { background: var(--cream); text-align: center; }
+  .partners-grid { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; margin-top: 2.5rem; max-width: 900px; margin-left: auto; margin-right: auto; }
+  .partner-chip { background: white; border: 1px solid rgba(57,87,49,0.08); border-radius: 12px; padding: 0.9rem 1.6rem; font-weight: 600; font-size: 0.88rem; color: var(--forest); transition: all 0.2s; }
+  .partner-chip:hover { border-color: var(--sage); box-shadow: 0 4px 16px rgba(57,87,49,0.08); }
+
+  /* CTA BANNER */
+  .cta-banner { background: var(--primary); color: var(--cream); text-align: center; padding: 5rem 4rem; position: relative; overflow: hidden; }
+  .cta-banner::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 60% 80% at 50% 100%, rgba(142,186,126,0.15) 0%, transparent 60%); }
+  .cta-banner-inner { position: relative; z-index: 1; max-width: 600px; margin: 0 auto; }
+  .cta-banner h2 { font-family: 'Playfair Display', serif; font-size: clamp(1.8rem, 3vw, 2.8rem); font-weight: 900; margin-bottom: 1rem; }
+  .cta-banner p { color: rgba(245,240,232,0.7); margin-bottom: 2rem; line-height: 1.7; }
+  .cta-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+
+  @media (max-width: 900px) {
+    .mission-inner { grid-template-columns: 1fr; }
+    .mission-visual { display: none; }
+    .team-grid { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 600px) {
+    .team-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<nav id="mainNav">
+  <a href="index.html" class="nav-logo"><img src="logo.png" alt="Brightside" class="nav-logo-img"><span class="nav-brand"><span class="brand-primary">Bright</span><span class="brand-secondary">side</span></span></a>
+  <ul class="nav-links">
+    <li><a href="index.html" id="nl-home">Home</a></li>
+    <li><a href="about.html" id="nl-about">About Us</a></li>
+    <li><a href="curriculum.html" id="nl-curriculum">Curriculum</a></li>
+    <li><a href="medical.html" id="nl-medical">Medical Finances</a></li>
+    <li><a href="course.html" id="nl-course">Courses</a></li>
+    <li><a href="https://donorbox.org/brightside-finance-operations" class="nav-cta">Donate</a></li>
+  </ul>
+  <button class="nav-hamburger" onclick="document.getElementById('mobileMenu').classList.add('open')" aria-label="Open menu">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+<div class="mobile-menu" id="mobileMenu">
+  <button class="mobile-close" onclick="document.getElementById('mobileMenu').classList.remove('open')">✕</button>
+  <a href="index.html" onclick="document.getElementById('mobileMenu').classList.remove('open')">Home</a>
+  <a href="about.html" onclick="document.getElementById('mobileMenu').classList.remove('open')">About Us</a>
+  <a href="curriculum.html" onclick="document.getElementById('mobileMenu').classList.remove('open')">Curriculum</a>
+  <a href="medical.html" onclick="document.getElementById('mobileMenu').classList.remove('open')">Medical Finances</a>
+  <a href="course.html" onclick="document.getElementById('mobileMenu').classList.remove('open')">Courses</a>
+  <a href="https://donorbox.org/brightside-finance-operations" onclick="document.getElementById('mobileMenu').classList.remove('open')" style="color:var(--primary);background:var(--secondary);padding:0.6rem 1.8rem;border-radius:100px;font-size:1rem;">Donate</a>
+</div>
+<!-- PAGE HERO -->
+<div class="page-hero">
+  <div class="page-hero-bg"></div>
+  <div class="page-hero-grid"></div>
+  <div class="page-hero-inner">
+    <span class="page-hero-eyebrow">Our Story</span>
+    <h1>Built on the belief that <em>everyone deserves</em> financial confidence</h1>
+    <p>Brightside Finance Foundation is a comprehensive initiative designed to empower students and adults with essential financial literacy skills. By providing accessible tools, interactive workshops, and tailored resources, Brightside equips individuals to confidently manage budgets, navigate financial challenges, and build a strong foundation for long-term financial independence.</p>
+  </div>
+</div>
+
+<!-- MISSION -->
+<section class="mission">
+  <div class="mission-inner">
+    <div class="mission-visual reveal">
+      <div class="mission-img-stack">
+        <div class="mission-card-big">
+          <div class="mission-card-big-text">
+            <div class="mission-card-big-num">1908+</div>
+            <div class="mission-card-big-label">people reached since founding</div>
+          </div>
+        </div>
+        <div class="year-badge">Est. 2025</div>
+      </div>
+    </div>
+    <div class="mission-text reveal reveal-delay-2">
+      <span class="section-label">// Our Mission</span>
+      <h2 class="section-title">Why we exist</h2>
+      <p class="section-subtitle">Nearly two-thirds of Americans can't pass a basic financial literacy test. We believe that's not a personal failure — it's an educational gap we can close together.</p>
+      <div class="mission-values">
+        <div class="value-item">
+          <div class="value-icon">🌍</div>
+          <div><div class="value-title">Free-Forever</div><div class="value-desc">Every resource we create is free, forever. No paywalls, no subscriptions, no barriers.</div></div>
+        </div>
+        <div class="value-item">
+          <div class="value-icon">📐</div>
+          <div><div class="value-title">Designed for all ages</div><div class="value-desc">Our resources are tailored to meet the needs of all age demographics.</div></div>
+        </div>
+        <div class="value-item">
+          <div class="value-icon">🤝</div>
+          <div><div class="value-title">Community-First</div><div class="value-desc">We partner with local schools, libraries, and community centers to bring financial education directly into people's lives.</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STORY TIMELINE -->
+<section class="story">
+  <div style="text-align:center;" class="reveal">
+    <span class="section-label">// Our Journey</span>
+    <h2 class="section-title">How we got here</h2>
+  </div>
+  <div class="story-inner reveal reveal-delay-1">
+    <div class="timeline">
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-year">2012 — Founded</div>
+        <div class="timeline-title">A kitchen table idea becomes a nonprofit</div>
+        <p class="timeline-desc">Co-founders Dr. Amara Osei and James Whitfield launch Brightside out of a shared frustration: their students were graduating high school without ever learning to balance a budget or understand a paycheck.</p>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-year">2014 — First Partnership</div>
+        <div class="timeline-title">Chicago Public Schools adopts our curriculum</div>
+        <p class="timeline-desc">After a successful pilot in 3 schools, CPS partners with Brightside to bring Money Sprouts and Smart Start to 42 schools across the district, reaching over 8,000 students in year one.</p>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-year">2017 — Expansion</div>
+        <div class="timeline-title">Adult programs launch nationwide</div>
+        <p class="timeline-desc">We extend our curriculum beyond schools with Launch Pad and Peak Years — community workshop programs for adults. Our first year serves 4,200 participants across 12 cities.</p>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-year">2020 — Going Digital</div>
+        <div class="timeline-title">Full online platform launches during COVID-19</div>
+        <p class="timeline-desc">When the pandemic closes in-person workshops, we rapidly build a full digital learning platform. Enrollment surges 340% as people across the country seek financial guidance during economic uncertainty.</p>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-year">2023 — Medical Finance Initiative</div>
+        <div class="timeline-title">Launching specialized healthcare financial literacy</div>
+        <p class="timeline-desc">Recognizing that medical debt is the #1 cause of bankruptcy in America, we launch a dedicated Medical Finances program — covering insurance, HSAs, hospital billing, and emergency savings.</p>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot" style="background:var(--mint);box-shadow:0 0 0 3px rgba(142,186,126,0.3)"></div>
+        <div class="timeline-year">Today</div>
+        <div class="timeline-title">48,200 lives and counting</div>
+        <p class="timeline-desc">With 127 partner organizations, 6 specialized programs, and a growing team of volunteers and educators, Brightside continues to expand its reach — with a goal of 100,000 participants by 2027.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TEAM -->
+<section class="team" id="team">
+  <div style="text-align:center;" class="reveal">
+    <span class="section-label">// The People</span>
+    <h2 class="section-title">Our team</h2>
+    <p class="section-subtitle" style="margin:0 auto;">Educators and community advocates united by a single mission.</p>
+  </div>
+  <div class="team-grid">
+    <div class="team-card reveal reveal-delay-1">
+      <div class="team-avatar">
+        <img src="shashank_kamenini.jpg" alt="Shashank Kamenini">
+      </div>
+      <div class="team-name">Shashank Kamenini</div>
+      <div class="team-role">Co-Founder & Chief Executive Officer</div>
+      <p class="team-bio">Goon squad leader, D1 cheater</p>
+    </div>
+    <div class="team-card reveal reveal-delay-2">
+      <div class="team-avatar">
+        <div class="team-avatar">
+        <img src="govinda_veeramalla.jpg" alt="Govinda Veeramalla">
+      </div>
+      </div>
+      <div class="team-name">Govinda Veeramalla</div>
+      <div class="team-role">Co-Founder & CFO</div>
+      <p class="team-bio">Black man</p>
+    </div>
+    <div class="team-card reveal reveal-delay-3">
+      <div class="team-avatar">
+        <img src="samuel_deepak.jpg" alt="Samuel Deepak">
+      </div>
+      <div class="team-name">Samuel Deepak</div>
+      <div class="team-role">Chief Operating Officer & Medical Finance Lead</div>
+      <p class="team-bio">Director of operations and medical division of Brightside. <br> 1 x ICDC qualifer</p>
+    </div>
+    <div class="team-card reveal reveal-delay-4">
+      <div class="team-avatar">
+        <img src="vijay_mukund.png" alt="Vijay Mukund Venkatesan Suganthi">
+      </div>
+      <div class="team-name">Vijay Mukund Venkatesan Suganthi</div>
+      <div class="team-role">Cheif Technical Officer & Legal Head</div>
+      <p class="team-bio">Gay</p>
+    </div>
+    <div class="team-card reveal reveal-delay-5">
+      <div class="team-avatar">
+        <img src="yash_grewal.jpeg" alt="Yash Grewal">
+      </div>
+      <div class="team-name">Yash Grewal</div>
+      <div class="team-role">Cheif Marketing Officer</div>
+      <p class="team-bio">Hasn't touched any official Brightside documents</p>
+    </div>
+    <div class="team-card reveal reveal-delay-1">
+      <div class="team-avatar">
+        <img src="jyotir_manchu.jpg" alt="Jyotir Manchu">
+      </div>
+      <div class="team-name">Jyotir Manchu</div>
+      <div class="team-role">Creative Works Lead</div>
+      <p class="team-bio">Took one month to make the cover page(still hasn't finished)</p>
+    </div>
+    <div class="team-card reveal reveal-delay-2">
+      <div class="team-avatar">
+        <img src="zain_faruki.png" alt="Zain Faruki">
+      </div>
+      <div class="team-name">Zain Faruki</div>
+      <div class="team-role">Creative Works</div>
+      <p class="team-bio">D1 Brightside Hater</p>
+    </div>
+    <div class="team-card reveal reveal-delay-3">
+      <div class="team-avatar">
+        <img src="vedha_patelolla.png" alt="Vedha Patelolla">
+      </div>
+      <div class="team-name">Vedha Patelolla</div>
+      <div class="team-role">Generalist</div>
+      <p class="team-bio">Doesn't read messages</p>
+    </div>
+        <div class="team-card reveal reveal-delay-4">
+      <div class="team-avatar">
+        <img src="saket_parayil.png" alt="Saket Parayil">
+      </div>
+      <div class="team-name">Saket Parayil</div>
+      <div class="team-role">Generalist</div>
+      <p class="team-bio">Doesn't do shit</p>
+    </div>
+    <div class="team-card reveal reveal-delay-5">
+      <div class="team-avatar">
+        <img src="ishan_pachnanda.png" alt="Ishan Pachnanda">
+      </div>
+      <div class="team-name">Ishan Pachnanda</div>
+      <div class="team-role">Generalist</div>
+      <p class="team-bio">Decent</p>
+    </div>
+    
+  </div>
+</section>
+
+<!-- CTA BANNER -->
+<div class="cta-banner">
+  <div class="cta-banner-inner reveal">
+    <h2>Join the Brightside movement</h2>
+    <p>Whether you donate, volunteer, or simply share our resources — you're helping someone build a more financially secure future.</p>
+    <div class="cta-actions">
+      <a href="https://donorbox.org/brightside-finance-operations" class="btn-gold">Get Involved →</a>
+      <a href="course.html" class="btn-secondary" style="color:var(--cream);border-color:rgba(255,255,255,0.3);">Start Learning Free</a>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-top">
+    <div class="footer-brand"><a href="index.html" class="nav-logo"><img src="logo.png" alt="Brightside" class="nav-logo-img"><span class="nav-brand"><span class="brand-primary">Bright</span><span class="brand-secondary">side</span></span></a><p class="footer-tagline">Financial literacy for every age, every background, every chapter of life. Free, always.</p></div>
+    <div class="footer-col"><h4>Pages</h4><ul><li><a href="about.html">About Us</a></li><li><a href="curriculum.html">Curriculum</a></li><li><a href="medical.html">Medical Finances</a></li><li><a href="course.html">Courses</a></li></ul></div>
+    <div class="footer-col"><h4>Programs</h4><ul><li><a href="curriculum.html">Money Sprouts</a></li><li><a href="curriculum.html">Smart Start</a></li><li><a href="curriculum.html">Launch Pad</a></li><li><a href="curriculum.html">Golden Path</a></li></ul></div>
+    <div class="footer-col"><h4>Organization</h4><ul><li><a href="about.html">Our Story</a></li><li><a href="about.html#team">Our Team</a></li><li><a href="#">Annual Report</a></li><li><a href="#">Contact</a></li></ul></div>
+  </div>
+  <div class="footer-bottom"><span>© 2025 Brightside Foundation. 501(c)(3) Non-Profit.</span><div class="footer-social"><a href="#" class="social-link">𝕏</a><a href="#" class="social-link">in</a><a href="#" class="social-link">f</a><a href="#" class="social-link">▶</a></div></div>
+</footer>
+
+<script>
+  const reveals = document.querySelectorAll('.reveal');
+  const obs = new IntersectionObserver(entries => entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible'); }), {threshold:0.1});
+  reveals.forEach(el => obs.observe(el));
+</script>
+<script>
+(function(){
+  // Scroll effect
+  var nav = document.getElementById('mainNav');
+  window.addEventListener('scroll', function(){
+    nav.classList.toggle('scrolled', window.scrollY > 40);
+  });
+  // Mark active page
+  var page = location.pathname.split('/').pop() || 'index.html';
+  var map = {'index.html':'nl-home','about.html':'nl-about','curriculum.html':'nl-curriculum','medical.html':'nl-medical','course.html':'nl-course'};
+  if(map[page]){ var el=document.getElementById(map[page]); if(el) el.classList.add('active'); }
+})();
+</script>
+</body>
+</html>
