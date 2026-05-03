@@ -97,7 +97,7 @@ def safe_float(value, fallback=0.0):
 
 
 def is_market_open_cst():
-    """Returns True if it's currently between 8:30 AM and 3:00 PM CST M-F."""
+    """Returns True if it's currently between 9:30 AM and 4:00 PM CST M-F."""
     cst = pytz.timezone('US/Central')
     now = datetime.now(cst)
     
@@ -105,17 +105,17 @@ def is_market_open_cst():
     if now.weekday() >= 5: 
         return False
         
-    market_open_time = datetime.strptime("08:30", "%H:%M").time()
-    market_close_time = datetime.strptime("15:00", "%H:%M").time()
+    market_open_time = datetime.strptime("09:30", "%H:%M").time()
+    market_close_time = datetime.strptime("16:00", "%H:%M").time()
     
     return market_open_time <= now.time() <= market_close_time
 
 
 def market_closed_for_day_cst():
-    """Returns True if the current time is strictly after 3:00 PM CST (End of Day)."""
+    """Returns True if the current time is strictly after 4:00 PM CST (End of Day)."""
     cst = pytz.timezone('US/Central')
     now = datetime.now(cst)
-    market_close_time = datetime.strptime("15:00", "%H:%M").time()
+    market_close_time = datetime.strptime("16:00", "%H:%M").time()
     return now.time() > market_close_time
 
 
@@ -188,11 +188,21 @@ def main_loop():
         if today_date != current_date_str:
             current_date_str = today_date
             history_written_today = False
+            
+        current_time = now_cst.time()
+        time_6am = datetime.strptime("06:00", "%H:%M").time()
+        time_10pm = datetime.strptime("22:00", "%H:%M").time()
         
+        # Check active hours (6am to 10pm)
+        if not (time_6am <= current_time < time_10pm):
+            print(f"[{now_cst.strftime('%H:%M:%S')}] Off hours (10 PM - 6 AM CST). Sleeping 60s...")
+            time.sleep(60)
+            continue
+            
         market_open = is_market_open_cst()
-        sleep_time = 5 if market_open else 30
+        sleep_time = 1 if market_open else 30
         
-        print(f"\n[CYCLE START] Stocks: {len(tickers)} | Market Open (CST): {market_open} | Batch Delay: {sleep_time}s | Time: {now_cst.strftime('%H:%M:%S')}")
+        print(f"\n[CYCLE START] Stocks: {len(tickers)} | High Traffic: {market_open} | Batch Delay: {sleep_time}s | Time: {now_cst.strftime('%H:%M:%S')}")
         
         for i in range(0, len(tickers), BATCH_SIZE):
             batch = tickers[i:i + BATCH_SIZE]
@@ -278,7 +288,7 @@ def main_loop():
             # Recalculate market state mid-loop in case it flips during this cycle
             now_cst = datetime.now(cst)
             market_open = is_market_open_cst()
-            sleep_time = 5 if market_open else 30
+            sleep_time = 1 if market_open else 30
 
         # After finishing a FULL PASS over all stocks...
         # Check if the market HAS CLOSED for the day and we need to lock in the history point
