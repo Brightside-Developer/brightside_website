@@ -989,15 +989,23 @@ export default function Simulator() {
     if (lbLoaded) return;
     setLbLoading(true);
     try {
-      const [{ data: mainData }, { data: compData }] = await Promise.all([
-        supabase.rpc('get_main_leaderboard'),
-        competition
-          ? supabase.rpc('get_competition_leaderboard', { comp_id: competition.id })
-          : Promise.resolve({ data: [] }),
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Leaderboard request timed out')), 10000)
+      );
+      const [{ data: mainData }, { data: compData }] = await Promise.race([
+        Promise.all([
+          supabase.rpc('get_main_leaderboard'),
+          competition
+            ? supabase.rpc('get_competition_leaderboard', { comp_id: competition.id })
+            : Promise.resolve({ data: [] }),
+        ]),
+        timeout,
       ]);
       setMainLb((mainData || []) as LeaderboardEntry[]);
       setCompLb((compData || []) as LeaderboardEntry[]);
       setLbLoaded(true);
+    } catch (err) {
+      console.error('Leaderboard load failed:', err);
     } finally {
       setLbLoading(false);
     }
