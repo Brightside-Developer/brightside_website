@@ -62,7 +62,7 @@ export default function Footer() {
 
       {/* Footer Bottom */}
       <div className="max-w-[1100px] mx-auto border-t border-secondary/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-secondary/30 dark:text-[#8fa887] transition-colors duration-200">
-        <span>© 2026 Brightside Finance Foundation</span>
+        <span>© 2025 Brightside Finance Foundation, EIN: 41-4334340, 1069 Angel Falls Drive, Frisco, Texas, 75036</span>
         <div className="flex gap-3">
           <Link href="#" aria-label="𝕏 (formerly Twitter)" className="w-9 h-9 border border-secondary/15 rounded-lg flex items-center justify-center text-secondary/50 hover:border-secondary hover:text-secondary transition-all">
             <FaXTwitter className="text-sm" />
