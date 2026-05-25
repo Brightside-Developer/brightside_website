@@ -447,7 +447,7 @@ export default function Simulator() {
         const { data: enrollment, error: enrollErr } = await supabase
           .from('competition_portfolios')
           .select('cash, holdings, total_value')
-          .eq('user_id', user.id)
+          .eq('uid', user.id)
           .eq('competition_id', comp.id)
           .maybeSingle();
 
@@ -845,7 +845,7 @@ export default function Simulator() {
             total_value: newTotal,
             updated_at: new Date().toISOString(),
           })
-          .eq('user_id', user.id)
+          .eq('uid', user.id)
           .eq('competition_id', competition!.id);
 
         if (error) { console.error('Competition trade persist error:', error); return { error: 'Failed to save trade. Check your connection.' }; }
@@ -951,7 +951,7 @@ export default function Simulator() {
         total_value: competition.starting_cash,
         updated_at: new Date().toISOString(),
       })
-      .eq('user_id', user.id)
+      .eq('uid', user.id)
       .eq('competition_id', competition.id);
     if (!error) {
       setCompCash(competition.starting_cash);
@@ -969,7 +969,7 @@ export default function Simulator() {
       const { error } = await supabase
         .from('competition_portfolios')
         .insert({
-          user_id: user.id,
+          uid: user.id,
           competition_id: competition.id,
           cash: competition.starting_cash,
           holdings: {},
@@ -996,7 +996,7 @@ export default function Simulator() {
         Promise.all([
           supabase.rpc('get_main_leaderboard'),
           competition
-            ? supabase.rpc('get_competition_leaderboard', { comp_id: competition.id })
+            ? supabase.rpc('get_competition_leaderboard', { comp_id: Number(competition.id) })
             : Promise.resolve({ data: [] }),
         ]),
         timeout,
