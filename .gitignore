@@ -52,8 +52,8 @@ env/
 .env/
 bin/
 include/
-lib/
-lib64/
+/lib/
+/lib64/
 share/
 scripts/venv/
 
