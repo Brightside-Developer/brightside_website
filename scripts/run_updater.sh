@@ -8,5 +8,5 @@ if [ ! -d "venv" ]; then
 fi
 
 source venv/bin/activate
-echo "Starting update_prices_fixed.py..."
-python3 update_prices_fixed.py
+echo "Starting update_prices.py..."
+python3 update_prices.py
