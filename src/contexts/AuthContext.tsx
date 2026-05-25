@@ -15,6 +15,7 @@ interface AuthContextType {
   profile: Profile | null;
   supabase: typeof supabase | null;
   authLoading: boolean;
+  adminLoading: boolean;
   isAdmin: boolean;
   isBanned: boolean;
   signOut: () => Promise<void>;
@@ -27,6 +28,7 @@ export const AuthContext = createContext<AuthContextType>({
   profile: null,
   supabase: null,
   authLoading: true,
+  adminLoading: true,
   isAdmin: false,
   isBanned: false,
   signOut: async () => {},
@@ -38,6 +40,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [authLoading, setAuthLoading] = useState<boolean>(true);
+  const [adminLoading, setAdminLoading] = useState<boolean>(true);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [isBanned, setIsBanned] = useState<boolean>(false);
 
@@ -74,28 +77,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        await Promise.all([
-          fetchProfile(session.user.id),
-          checkAdminAndBan(session.user.id),
-        ]);
+        // Profile and session are enough to show the navbar — clear authLoading now
+        fetchProfile(session.user.id);
+        setAuthLoading(false);
+        // Admin/ban check runs in background; adminLoading tracks it separately
+        await checkAdminAndBan(session.user.id);
+      } else {
+        setAuthLoading(false);
       }
-      setAuthLoading(false);
+      setAdminLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       if (currentSession?.user) {
-        await Promise.all([
-          fetchProfile(currentSession.user.id),
-          checkAdminAndBan(currentSession.user.id),
-        ]);
+        fetchProfile(currentSession.user.id);
+        setAuthLoading(false);
+        await checkAdminAndBan(currentSession.user.id);
       } else {
         setProfile(null);
         setIsAdmin(false);
         setIsBanned(false);
+        setAuthLoading(false);
       }
-      setAuthLoading(false);
+      setAdminLoading(false);
     });
 
     return () => { subscription.unsubscribe(); };
@@ -110,7 +116,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, supabase, authLoading, isAdmin, isBanned, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ user, session, profile, supabase, authLoading, adminLoading, isAdmin, isBanned, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

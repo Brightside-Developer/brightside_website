@@ -49,7 +49,7 @@ const statusCls = (s: string) => ({
 }[s] ?? 'bg-gray-100 text-gray-500');
 
 export default function AdminPage() {
-  const { user, isAdmin, authLoading } = useAuth();
+  const { user, isAdmin, adminLoading } = useAuth();
   const router = useRouter();
 
   const [tab, setTab] = useState<'competitions' | 'users'>('competitions');
@@ -70,8 +70,8 @@ export default function AdminPage() {
 
   // Redirect non-admins once auth resolves
   useEffect(() => {
-    if (!authLoading && (!user || !isAdmin)) router.replace('/');
-  }, [authLoading, user, isAdmin, router]);
+    if (!adminLoading && (!user || !isAdmin)) router.replace('/');
+  }, [adminLoading, user, isAdmin, router]);
 
   const loadCompetitions = useCallback(async () => {
     setCompLoading(true);
@@ -168,7 +168,7 @@ export default function AdminPage() {
     setInflight(null);
   };
 
-  if (authLoading || !isAdmin) {
+  if (adminLoading || !isAdmin) {
     return (
       <div className="flex-1 flex items-center justify-center bg-warm-white dark:bg-[#1a1f1a]">
         <FaSpinner className="animate-spin text-2xl text-primary-light dark:text-mint" />
