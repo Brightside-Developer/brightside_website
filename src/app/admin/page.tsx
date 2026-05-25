@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { FaSpinner, FaPlus, FaBan, FaRotateLeft } from 'react-icons/fa6';
+import { FaSpinner, FaPlus, FaBan, FaRotateLeft, FaPencil, FaTrash } from 'react-icons/fa6';
 
 interface Competition {
   id: string;
@@ -58,8 +58,9 @@ export default function AdminPage() {
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [compLoading, setCompLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
-  const [creating, setCreating] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [formSuccess, setFormSuccess] = useState('');
 
@@ -106,7 +107,24 @@ export default function AdminPage() {
   }, [tab, isAdmin, loadUsers]);
 
   // ── Competition actions ───────────────────────────────────────
-  const handleCreate = async () => {
+  const closeForm = () => { setShowForm(false); setEditingId(null); setFormError(''); setForm(EMPTY_FORM); };
+
+  const startEdit = (comp: Competition) => {
+    setForm({
+      name:          comp.name,
+      start_date:    comp.start_date,
+      end_date:      comp.end_date,
+      starting_cash: comp.starting_cash,
+      visibility:    comp.visibility,
+      join_code:     comp.join_code ?? '',
+      status:        comp.status,
+    });
+    setEditingId(comp.id);
+    setShowForm(true);
+    setFormError('');
+  };
+
+  const handleSave = async () => {
     setFormError('');
     if (!form.name.trim() || !form.start_date || !form.end_date) {
       setFormError('Name, start date, and end date are required.');
@@ -116,24 +134,32 @@ export default function AdminPage() {
       setFormError('End date must be after start date.');
       return;
     }
-    setCreating(true);
-    const { error } = await supabase.from('competitions').insert({
+    setSaving(true);
+    const payload = {
       name:          form.name.trim(),
-      admin_user_id: user!.id,
       starting_cash: form.starting_cash,
       start_date:    form.start_date,
       end_date:      form.end_date,
       visibility:    form.visibility,
       join_code:     form.join_code.trim() || null,
       status:        form.status,
-    });
-    setCreating(false);
+    };
+    const { error } = editingId
+      ? await supabase.from('competitions').update(payload).eq('id', editingId)
+      : await supabase.from('competitions').insert({ ...payload, admin_user_id: user!.id });
+    setSaving(false);
     if (error) { setFormError(error.message); return; }
-    setFormSuccess('Competition created successfully.');
-    setForm(EMPTY_FORM);
-    setShowForm(false);
+    setFormSuccess(editingId ? 'Competition updated.' : 'Competition created.');
+    closeForm();
     loadCompetitions();
     setTimeout(() => setFormSuccess(''), 4000);
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Delete "${name}"? This will also remove all enrolled portfolios. This cannot be undone.`)) return;
+    const { error } = await supabase.from('competitions').delete().eq('id', id);
+    if (error) { alert('Delete failed: ' + error.message); return; }
+    setCompetitions(prev => prev.filter(c => c.id !== id));
   };
 
   const updateStatus = async (id: string, status: string) => {
@@ -218,13 +244,15 @@ export default function AdminPage() {
               </div>
             )}
 
-            {/* Create form card */}
+            {/* Create / Edit form card */}
             <div className="bg-white dark:bg-[#242924] border border-primary/8 dark:border-mint/10 rounded-[20px] shadow-sm overflow-hidden">
               <button
-                onClick={() => { setShowForm(v => !v); setFormError(''); }}
+                onClick={() => { if (showForm && !editingId) closeForm(); else if (!showForm) { setEditingId(null); setForm(EMPTY_FORM); setShowForm(true); setFormError(''); } else closeForm(); }}
                 className="w-full flex items-center justify-between px-6 md:px-8 py-5 cursor-pointer"
               >
-                <span className="font-serif text-lg font-bold text-primary dark:text-[#e8f0e0]">New Competition</span>
+                <span className="font-serif text-lg font-bold text-primary dark:text-[#e8f0e0]">
+                  {showForm && editingId ? 'Edit Competition' : 'New Competition'}
+                </span>
                 <span className={`w-7 h-7 rounded-full bg-primary dark:bg-primary-light flex items-center justify-center text-cream text-xs transition-transform duration-200 ${showForm ? 'rotate-45' : ''}`}>
                   <FaPlus />
                 </span>
@@ -322,18 +350,18 @@ export default function AdminPage() {
 
                   <div className="flex gap-3">
                     <button
-                      onClick={() => { setShowForm(false); setFormError(''); setForm(EMPTY_FORM); }}
+                      onClick={closeForm}
                       className="px-5 py-2.5 rounded-xl border border-primary/12 dark:border-mint/12 text-sm font-semibold text-[#6b7280] dark:text-[#8fa887] hover:bg-primary/4 dark:hover:bg-mint/6 transition-all cursor-pointer"
                     >
                       Cancel
                     </button>
                     <button
-                      onClick={handleCreate}
-                      disabled={creating}
+                      onClick={handleSave}
+                      disabled={saving}
                       className="px-7 py-2.5 rounded-xl bg-primary dark:bg-primary-light hover:bg-primary-light dark:hover:bg-sage text-cream text-sm font-bold shadow-sm transition-all cursor-pointer disabled:opacity-60 flex items-center gap-2"
                     >
-                      {creating && <FaSpinner className="animate-spin text-xs" />}
-                      {creating ? 'Creating…' : 'Create Competition'}
+                      {saving && <FaSpinner className="animate-spin text-xs" />}
+                      {saving ? 'Saving…' : editingId ? 'Save Changes' : 'Create Competition'}
                     </button>
                   </div>
                 </div>
@@ -367,6 +395,7 @@ export default function AdminPage() {
                         <th className="font-mono text-[10px] text-[#9ca3af] dark:text-[#6b7d65] uppercase tracking-wider text-left px-4 py-3.5 hidden md:table-cell">Cash</th>
                         <th className="font-mono text-[10px] text-[#9ca3af] dark:text-[#6b7d65] uppercase tracking-wider text-left px-4 py-3.5">Status</th>
                         <th className="font-mono text-[10px] text-[#9ca3af] dark:text-[#6b7d65] uppercase tracking-wider text-left px-4 py-3.5 hidden lg:table-cell">Join Code</th>
+                        <th className="font-mono text-[10px] text-[#9ca3af] dark:text-[#6b7d65] uppercase tracking-wider text-right px-6 md:px-8 py-3.5">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -402,6 +431,22 @@ export default function AdminPage() {
                             <span className="font-mono text-xs text-[#9ca3af] dark:text-[#6b7d65]">
                               {comp.join_code ?? '—'}
                             </span>
+                          </td>
+                          <td className="px-6 md:px-8 py-4">
+                            <div className="flex gap-2 justify-end">
+                              <button
+                                onClick={() => startEdit(comp)}
+                                className="flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1.5 rounded-lg bg-primary/8 text-primary-light hover:bg-primary/15 dark:bg-mint/10 dark:text-mint dark:hover:bg-mint/20 transition-all cursor-pointer"
+                              >
+                                <FaPencil className="text-[9px]" /> Edit
+                              </button>
+                              <button
+                                onClick={() => handleDelete(comp.id, comp.name)}
+                                className="flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1.5 rounded-lg bg-rose-100 text-rose-700 hover:bg-rose-200 dark:bg-rose-900/20 dark:text-rose-400 dark:hover:bg-rose-900/40 transition-all cursor-pointer"
+                              >
+                                <FaTrash className="text-[9px]" /> Delete
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
