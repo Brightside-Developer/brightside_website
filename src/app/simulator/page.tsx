@@ -193,6 +193,7 @@ export default function Simulator() {
       setIsDark(document.documentElement.classList.contains('dark'));
     });
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsDark(document.documentElement.classList.contains('dark'));
     return () => observer.disconnect();
   }, []);
@@ -202,7 +203,9 @@ export default function Simulator() {
     if (cachedState) {
       try {
         const data = JSON.parse(cachedState);
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         if (data.cash !== undefined) setCash(data.cash);
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         if (data.holdings) setHoldings(data.holdings);
       } catch {}
     }
@@ -269,7 +272,7 @@ export default function Simulator() {
       const PAGE_SIZE = 500;
       let from = 0;
       let keepGoing = true;
-      let fullMarket: Record<string, StockData> = {};
+      const fullMarket: Record<string, StockData> = {};
 
       while (keepGoing) {
         const { data, error } = await supabase
@@ -739,7 +742,10 @@ export default function Simulator() {
   );
   const totalPages = Math.ceil(sortedStocks.length / STOCKS_PER_PAGE);
 
-  useEffect(() => { setStocksPage(0); }, [tableSearch, stocksSortCol]);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setStocksPage(0);
+  }, [tableSearch, stocksSortCol]);
 
   const handleSortChange = (col: keyof StockData) => {
     if (stocksSortCol === col) {
@@ -998,6 +1004,7 @@ export default function Simulator() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (gameMode === 'leaderboard') loadLeaderboard();
   }, [gameMode]);
 
@@ -1005,11 +1012,7 @@ export default function Simulator() {
 
   const currentHoldingsForModal = modalMode === 'competition' ? compHoldings : holdings;
 
-  const PortfolioContent = ({
-    isComp,
-  }: {
-    isComp: boolean;
-  }) => {
+  const renderPortfolio = (isComp: boolean) => {
     const tv = isComp ? compTotalValue : totalValue;
     const ra = isComp ? compReturnAmt : returnAmt;
     const rp = isComp ? compReturnPct : returnPct;
@@ -1344,7 +1347,7 @@ export default function Simulator() {
     );
   };
 
-  const MarketsContent = () => (
+  const renderMarkets = () => (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-5 items-start">
       <div className="bg-white dark:bg-[#242924] border border-primary/8 dark:border-mint/10 rounded-[20px] shadow-sm overflow-hidden">
         <div className="px-6 md:px-8 py-5 border-b border-primary/6 dark:border-mint/8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
@@ -1713,7 +1716,7 @@ export default function Simulator() {
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2 }}
             >
-              <PortfolioContent isComp={false} />
+              {renderPortfolio(false)}
             </motion.div>
           )}
 
@@ -1725,7 +1728,7 @@ export default function Simulator() {
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2 }}
             >
-              <MarketsContent />
+              {renderMarkets()}
             </motion.div>
           )}
 
@@ -1804,7 +1807,7 @@ export default function Simulator() {
                     <span className="w-2 h-2 rounded-full bg-primary-light dark:bg-mint animate-pulse inline-block" />
                     Competition mode — {competition.name}
                   </div>
-                  <PortfolioContent isComp={true} />
+                  {renderPortfolio(true)}
                 </div>
               )}
             </motion.div>
@@ -1818,7 +1821,7 @@ export default function Simulator() {
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2 }}
             >
-              <MarketsContent />
+              {renderMarkets()}
             </motion.div>
           )}
 

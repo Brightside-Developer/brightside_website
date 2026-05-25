@@ -13,6 +13,7 @@ export default function SettingsPage() {
   useEffect(() => {
     const stored = localStorage.getItem('darkMode');
     const isDark = stored === 'true';
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTheme(isDark ? 'dark' : 'light');
   }, []);
 

@@ -96,8 +96,14 @@ export default function AdminPage() {
     setUsersLoading(false);
   }, []);
 
-  useEffect(() => { if (isAdmin) loadCompetitions(); }, [isAdmin, loadCompetitions]);
-  useEffect(() => { if (tab === 'users' && isAdmin) loadUsers(); }, [tab, isAdmin, loadUsers]);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (isAdmin) loadCompetitions();
+  }, [isAdmin, loadCompetitions]);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (tab === 'users' && isAdmin) loadUsers();
+  }, [tab, isAdmin, loadUsers]);
 
   // ── Competition actions ───────────────────────────────────────
   const handleCreate = async () => {

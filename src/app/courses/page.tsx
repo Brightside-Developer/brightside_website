@@ -266,7 +266,7 @@ export default function Courses() {
               {programs.map((prog, i) => (
                 <button
                   key={prog.id}
-                  onClick={() => setActiveTab(prog.id as any)}
+                  onClick={() => setActiveTab(prog.id as 'kids' | 'teens' | 'adults')}
                   className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap cursor-pointer transition-all duration-200 shrink-0 ${
                     activeTab === prog.id
                       ? 'bg-primary dark:bg-primary-light text-cream shadow-sm'
@@ -294,7 +294,7 @@ export default function Courses() {
                   return (
                     <button
                       key={prog.id}
-                      onClick={() => setActiveTab(prog.id as any)}
+                      onClick={() => setActiveTab(prog.id as 'kids' | 'teens' | 'adults')}
                       className={`group relative flex items-start gap-3.5 px-4 py-4 rounded-xl text-left cursor-pointer transition-all duration-200 mb-1 ${
                         isActive
                           ? 'bg-primary dark:bg-[#1e2b1c] shadow-sm'
@@ -427,7 +427,7 @@ export default function Courses() {
                     <button
                       onClick={() => {
                         const prev = programs[activeIdx - 1];
-                        if (prev) setActiveTab(prev.id as any);
+                        if (prev) setActiveTab(prev.id as 'kids' | 'teens' | 'adults');
                       }}
                       disabled={activeIdx === 0}
                       className="flex items-center gap-2 text-xs font-semibold text-primary dark:text-[#e8f0e0] disabled:opacity-30 disabled:cursor-not-allowed hover:text-primary-light dark:hover:text-mint transition-colors cursor-pointer"
@@ -438,7 +438,7 @@ export default function Courses() {
                       {programs.map((p, i) => (
                         <button
                           key={p.id}
-                          onClick={() => setActiveTab(p.id as any)}
+                          onClick={() => setActiveTab(p.id as 'kids' | 'teens' | 'adults')}
                           className={`w-1.5 h-1.5 rounded-full transition-all cursor-pointer ${
                             p.id === activeTab ? 'bg-primary dark:bg-mint w-5' : 'bg-primary/20 dark:bg-mint/20 hover:bg-primary/40 dark:hover:bg-mint/40'
                           }`}
@@ -448,7 +448,7 @@ export default function Courses() {
                     <button
                       onClick={() => {
                         const next = programs[activeIdx + 1];
-                        if (next) setActiveTab(next.id as any);
+                        if (next) setActiveTab(next.id as 'kids' | 'teens' | 'adults');
                       }}
                       disabled={activeIdx === programs.length - 1}
                       className="flex items-center gap-2 text-xs font-semibold text-primary dark:text-[#e8f0e0] disabled:opacity-30 disabled:cursor-not-allowed hover:text-primary-light dark:hover:text-mint transition-colors cursor-pointer"
@@ -469,7 +469,7 @@ export default function Courses() {
           <RevealOnScroll>
             <div>
               <span className="font-mono text-[11px] tracking-[0.15em] uppercase text-primary-light dark:text-[#6b9960] block mb-3">
-                // What You&apos;ll Gain
+                {'// What You\'ll Gain'}
               </span>
               <h2 className="font-serif text-[clamp(2rem,3.5vw,3rem)] font-black text-primary dark:text-[#e8f0e0] leading-[1.15] mb-5">
                 Real skills, real results

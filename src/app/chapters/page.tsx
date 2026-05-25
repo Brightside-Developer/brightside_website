@@ -301,7 +301,7 @@ export default function Chapters() {
                           </div>
 
                           <p className="text-xs text-[#6b7280] dark:text-[#8fa887] leading-relaxed mb-6">
-                            There's no Brightside chapter in {selectedState.name} yet. Be the first — start one and bring financial literacy to your community.
+                            There&apos;s no Brightside chapter in {selectedState.name} yet. Be the first — start one and bring financial literacy to your community.
                           </p>
 
                           <a
@@ -369,7 +369,7 @@ export default function Chapters() {
           <RevealOnScroll>
             <div className="flex flex-col items-center">
               <span className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 dark:bg-mint/10 dark:border-mint/20 rounded-full px-4 py-1.5 text-xs font-semibold tracking-wider uppercase text-primary dark:text-[#e8f0e0] mb-6">
-                // Get Involved
+                {'// Get Involved'}
               </span>
               <h2 className="font-serif text-[clamp(2rem,4vw,3rem)] font-black leading-tight text-primary dark:text-[#e8f0e0] mb-5">
                 Start a chapter in your state

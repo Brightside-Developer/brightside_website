@@ -21,8 +21,8 @@ export default function AuthPage() {
     setTimeout(() => setErrorMsg(''), 4500);
   };
 
-  const friendlyError = (err: any): string => {
-    const msg = err?.message || '';
+  const friendlyError = (err: unknown): string => {
+    const msg = (err as { message?: string })?.message || '';
     if (msg.includes('Invalid login credentials')) return 'Incorrect email or password.';
     if (msg.includes('User already registered')) return 'An account with this email already exists.';
     if (msg.includes('Password should be at least 6 characters')) return 'Password must be at least 6 characters.';

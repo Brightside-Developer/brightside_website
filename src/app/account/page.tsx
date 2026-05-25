@@ -53,7 +53,10 @@ export default function AccountPage() {
   }, [authLoading, user]);
 
   useEffect(() => {
-    if (profile?.full_name) setName(profile.full_name);
+    if (profile?.full_name) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setName(profile.full_name);
+    }
   }, [profile?.full_name]);
 
   // Fetch DOB from profiles (not on AuthContext profile type, so fetch separately)

@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
 import PageHero from '@/components/PageHero';
 import RevealOnScroll from '@/components/RevealOnScroll';
 import SectionHeader from '@/components/SectionHeader';
@@ -154,7 +153,7 @@ export default function About() {
           <RevealOnScroll delay={0.2}>
             <div>
               <span className="font-mono text-[11px] tracking-[0.15em] uppercase text-primary-light dark:text-[#6b9960] block mb-3">
-                // Our Mission
+                {'// Our Mission'}
               </span>
               <h2 className="font-serif text-[clamp(2rem,3.5vw,3rem)] font-black text-primary dark:text-[#e8f0e0] leading-[1.15] mb-5">
                 Why we exist
@@ -199,7 +198,7 @@ export default function About() {
             <div className="relative pl-10 border-l-2 border-gradient-to-b border-mint dark:border-mint/30">
               <div className="absolute left-[-2px] top-0 bottom-0 w-0.5 bg-gradient-to-b from-mint via-gold to-sage rounded"></div>
               
-              {timeline.map((item, idx) => (
+              {timeline.map((item) => (
                 <div key={item.title} className="relative mb-12 last:mb-0">
                   {/* Dot */}
                   <div
@@ -270,7 +269,7 @@ export default function About() {
         <div className="max-w-[900px] mx-auto">
           <RevealOnScroll>
             <span className="font-mono text-[11px] tracking-[0.15em] uppercase text-primary-light dark:text-[#6b9960] block mb-3">
-              // Partner Network
+              {'// Partner Network'}
             </span>
             <h2 className="font-serif text-[clamp(1.8rem,3vw,2.5rem)] font-black text-primary dark:text-[#e8f0e0] mb-6">
               Organizations we work with

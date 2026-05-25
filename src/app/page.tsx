@@ -399,9 +399,9 @@ export default function Home() {
           {/* Pull quote */}
           <RevealOnScroll>
             <div className="max-w-[740px] mx-auto text-center border-t border-white/10 pt-16">
-              <div className="font-serif text-5xl text-cream/15 leading-none mb-5 select-none">"</div>
+              <div className="font-serif text-5xl text-cream/15 leading-none mb-5 select-none">&quot;</div>
               <blockquote className="font-serif text-[clamp(1.2rem,2.5vw,1.85rem)] font-bold italic text-cream/85 leading-[1.45] mb-7">
-                Financial literacy is the foundation of economic freedom. Every lesson we teach is an investment in someone's future.
+                Financial literacy is the foundation of economic freedom. Every lesson we teach is an investment in someone&apos;s future.
               </blockquote>
               <Link href="/about" className="inline-flex items-center gap-2 text-mint font-bold text-sm hover:text-cream transition-colors">
                 Read our full story <Arrow />
