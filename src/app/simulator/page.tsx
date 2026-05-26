@@ -154,6 +154,7 @@ export default function Simulator() {
   const [compTradeLog, setCompTradeLog] = useState<TradeEntry[]>([]);
   const [compSnapshots, setCompSnapshots] = useState<PortfolioSnapshot[]>([]);
   const [compLoading, setCompLoading] = useState(false);
+  const [compRetry, setCompRetry] = useState(0);
   const [enrolling, setEnrolling] = useState(false);
 
   const [lbTab, setLbTab] = useState<'main' | 'competition'>('main');
@@ -161,6 +162,8 @@ export default function Simulator() {
   const [compLb, setCompLb] = useState<LeaderboardEntry[]>([]);
   const [lbLoading, setLbLoading] = useState(false);
   const [lbLoaded, setLbLoaded] = useState(false);
+  const [lbError, setLbError] = useState(false);
+  const [compError, setCompError] = useState(false);
 
   const portfolioChartRef = useRef<HTMLCanvasElement | null>(null);
   const compPortfolioChartRef = useRef<HTMLCanvasElement | null>(null);
@@ -424,40 +427,50 @@ export default function Simulator() {
     };
   }, [user?.id]);
 
+  // Soft timeout: resolves to fallback instead of rejecting, so one slow query
+  // doesn't block everything else.
+  function withTimeout<T>(p: PromiseLike<T>, ms: number, fallback: T): Promise<T> {
+    return Promise.race([Promise.resolve(p), new Promise<T>(resolve => setTimeout(() => resolve(fallback), ms))]);
+  }
+
   useEffect(() => {
     if (!user?.id) return;
     let mounted = true;
 
     const loadCompetition = async () => {
-      if (mounted) setCompLoading(true);
+      if (mounted) { setCompLoading(true); setCompError(false); }
       try {
-        const { data: comps, error: compsErr } = await supabase
-          .from('competitions')
-          .select('*')
-          .order('start_date', { ascending: false })
-          .limit(1);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const compsResult = await withTimeout<any>(
+          supabase.from('competitions').select('*').order('start_date', { ascending: false }).limit(1),
+          15000,
+          { data: null, error: null }
+        );
 
         if (!mounted) return;
-        if (compsErr) { console.error('competitions fetch error:', compsErr); return; }
-        if (!comps || comps.length === 0) return;
-
-        const comp = comps[0] as Competition;
-        setCompetition(comp);
-
-        const { data: enrollment, error: enrollErr } = await supabase
-          .from('competition_portfolios')
-          .select('cash, holdings, total_value')
-          .eq('uid', user.id)
-          .eq('competition_id', comp.id)
-          .maybeSingle();
-
-        if (!mounted) return;
-        if (enrollErr) {
-          console.error('enrollment fetch error:', enrollErr?.message, '| code:', enrollErr?.code, '| hint:', enrollErr?.hint);
-          // Table may not exist yet — still show competition so user can enroll
+        if (!compsResult.data || compsResult.data.length === 0) {
+          if (compsResult.error) setCompError(true);
+          return;
         }
 
-        if (!enrollErr && enrollment) {
+        const comp = compsResult.data[0] as Competition;
+        setCompetition(comp);
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const enrollResult = await withTimeout<any>(
+          supabase.from('competition_portfolios').select('cash, holdings, total_value')
+            .eq('uid', user.id).eq('competition_id', comp.id).maybeSingle(),
+          15000,
+          { data: null, error: null }
+        );
+
+        if (!mounted) return;
+        if (enrollResult.error) {
+          console.error('enrollment fetch error:', enrollResult.error?.message);
+        }
+
+        if (!enrollResult.error && enrollResult.data) {
+          const enrollment = enrollResult.data;
           setCompEnrolled(true);
           setCompCash(enrollment.cash ?? comp.starting_cash);
           const raw = enrollment.holdings || {};
@@ -480,6 +493,7 @@ export default function Simulator() {
         }
       } catch (e) {
         console.error('loadCompetition error:', e);
+        if (mounted) setCompError(true);
       } finally {
         if (mounted) setCompLoading(false);
       }
@@ -487,7 +501,7 @@ export default function Simulator() {
 
     loadCompetition();
     return () => { mounted = false; };
-  }, [user?.id]);
+  }, [user?.id, compRetry]);
 
   const { totalValue, returnAmt, returnPct, holdingsList } = useMemo(() => {
     let holdingsTotal = 0;
@@ -986,26 +1000,35 @@ export default function Simulator() {
   };
 
   const loadLeaderboard = async () => {
-    if (lbLoaded) return;
+    if (lbLoading) return;
     setLbLoading(true);
+    setLbError(false);
     try {
-      const timeout = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Leaderboard request timed out')), 10000)
-      );
-      const [{ data: mainData }, { data: compData }] = await Promise.race([
-        Promise.all([
-          supabase.rpc('get_main_leaderboard'),
-          competition
-            ? supabase.rpc('get_competition_leaderboard', { comp_id: competition.id })
-            : Promise.resolve({ data: [] }),
-        ]),
-        timeout,
+      const TIMEOUT = 20000;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const fallback: any = { data: null };
+      const [mainResult, compResult] = await Promise.all([
+        withTimeout<any>(supabase.rpc('get_main_leaderboard'), TIMEOUT, fallback),
+        competition
+          ? withTimeout<any>(supabase.rpc('get_competition_leaderboard', { comp_id: competition.id }), TIMEOUT, fallback)
+          : Promise.resolve({ data: [] }),
       ]);
-      setMainLb((mainData || []) as LeaderboardEntry[]);
-      setCompLb((compData || []) as LeaderboardEntry[]);
-      setLbLoaded(true);
+
+      const gotMain = Array.isArray(mainResult.data);
+      const gotComp = Array.isArray(compResult.data);
+
+      if (!gotMain && !gotComp) {
+        setLbError(true);
+        setLbLoaded(false);
+      } else {
+        if (gotMain) setMainLb(mainResult.data as LeaderboardEntry[]);
+        if (gotComp) setCompLb(compResult.data as LeaderboardEntry[]);
+        setLbLoaded(true);
+      }
     } catch (err) {
       console.error('Leaderboard load failed:', err);
+      setLbError(true);
+      setLbLoaded(false);
     } finally {
       setLbLoading(false);
     }
@@ -1013,7 +1036,7 @@ export default function Simulator() {
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (gameMode === 'leaderboard') loadLeaderboard();
+    if (gameMode === 'leaderboard' && !lbLoaded) loadLeaderboard();
   }, [gameMode]);
 
   const selectedStockDetail = detailTicker ? marketData[detailTicker] : null;
@@ -1791,6 +1814,16 @@ export default function Simulator() {
                   </div>
                   <div className="h-11 w-40 bg-primary/10 dark:bg-mint/10 rounded-full" />
                 </div>
+              ) : compError ? (
+                <div className="bg-white dark:bg-[#242924] border border-primary/8 dark:border-mint/10 rounded-[20px] p-12 shadow-sm text-center">
+                  <p className="text-sm text-[#9ca3af] dark:text-[#6b7d65] mb-4">Could not load competition data.</p>
+                  <button
+                    onClick={() => { setCompError(false); setCompRetry(n => n + 1); }}
+                    className="text-xs font-bold px-5 py-2 rounded-full bg-primary/8 dark:bg-mint/10 text-primary-light dark:text-mint hover:bg-primary/15 dark:hover:bg-mint/20 transition-all cursor-pointer"
+                  >
+                    Retry
+                  </button>
+                </div>
               ) : !competition ? (
                 <div className="bg-white dark:bg-[#242924] border border-primary/8 dark:border-mint/10 rounded-[20px] p-12 shadow-sm text-center">
                   <p className="text-sm text-[#9ca3af] dark:text-[#6b7d65]">No active competition found.</p>
@@ -1901,7 +1934,12 @@ export default function Simulator() {
                   <h3 className="font-serif text-lg font-bold text-primary dark:text-[#e8f0e0]">
                     {lbTab === 'main' ? 'All-Time Leaderboard' : (competition?.name ?? 'Competition Leaderboard')}
                   </h3>
-                  {lbLoading && <div className="w-20 h-3 bg-primary/10 dark:bg-mint/10 rounded animate-pulse" />}
+                  {lbLoading
+                    ? <div className="w-20 h-3 bg-primary/10 dark:bg-mint/10 rounded animate-pulse" />
+                    : <button onClick={loadLeaderboard} className="text-xs font-semibold text-primary-light dark:text-mint hover:text-primary dark:hover:text-cream transition-colors cursor-pointer">
+                        {lbError ? 'Retry' : 'Refresh'}
+                      </button>
+                  }
                 </div>
 
                 {lbLoading ? (
@@ -1979,7 +2017,9 @@ export default function Simulator() {
                         })}
                         {(lbTab === 'main' ? mainLb : compLb).length === 0 && !lbLoading && (
                           <tr>
-                            <td colSpan={4} className="px-8 py-16 text-center text-xs text-[#9ca3af] dark:text-[#6b7d65]">No entries yet.</td>
+                            <td colSpan={4} className="px-8 py-16 text-center text-xs text-[#9ca3af] dark:text-[#6b7d65]">
+                              {lbError ? 'Could not load leaderboard — click Retry to try again.' : 'No entries yet.'}
+                            </td>
                           </tr>
                         )}
                       </tbody>
