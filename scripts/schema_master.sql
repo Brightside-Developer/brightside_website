@@ -105,7 +105,7 @@ CREATE POLICY "Users manage own game state"
 -- ── 5. competitions ───────────────────────────────────────────
 -- Competition definitions. Admin inserts rows; users read.
 CREATE TABLE IF NOT EXISTS public.competitions (
-  id            SERIAL      PRIMARY KEY,
+  id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   name          TEXT        NOT NULL,
   description   TEXT,
   start_date    DATE        NOT NULL,
@@ -125,7 +125,7 @@ CREATE POLICY "Public read competitions"
 -- Holdings JSONB same format as game_state (includes SHORT: keys).
 CREATE TABLE IF NOT EXISTS public.competition_portfolios (
   uid            UUID    NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  competition_id INTEGER NOT NULL REFERENCES public.competitions(id) ON DELETE CASCADE,
+  competition_id UUID    NOT NULL REFERENCES public.competitions(id) ON DELETE CASCADE,
   cash           NUMERIC NOT NULL DEFAULT 100000,
   holdings       JSONB   NOT NULL DEFAULT '{}',
   total_value    NUMERIC NOT NULL DEFAULT 100000,
@@ -178,7 +178,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION public.get_competition_leaderboard(comp_id INTEGER)
+CREATE OR REPLACE FUNCTION public.get_competition_leaderboard(comp_id UUID)
 RETURNS TABLE(
   uid          UUID,
   display_name TEXT,
@@ -216,7 +216,7 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.get_main_leaderboard()               TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.get_competition_leaderboard(INTEGER) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.get_competition_leaderboard(UUID) TO anon, authenticated;
 
 -- ── 8. Realtime — enable for live-updating tables ─────────────
 -- Run these only if stocks / game_state are not already in the

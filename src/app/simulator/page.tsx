@@ -996,7 +996,7 @@ export default function Simulator() {
         Promise.all([
           supabase.rpc('get_main_leaderboard'),
           competition
-            ? supabase.rpc('get_competition_leaderboard', { comp_id: Number(competition.id) })
+            ? supabase.rpc('get_competition_leaderboard', { comp_id: competition.id })
             : Promise.resolve({ data: [] }),
         ]),
         timeout,
