@@ -723,7 +723,7 @@ export default function Simulator() {
   }, [detailTicker, detailRange, isDark, historyCache]);
 
   const sortedStocks = useMemo(() => {
-    let list = Object.values(marketData);
+    let list = Object.values(marketData).filter(s => (s.price ?? 0) > 0);
     if (tableSearch.trim()) {
       const q = tableSearch.toUpperCase().trim();
       list = list.filter(s => s.symbol.includes(q) || (s.name || '').toUpperCase().includes(q));
@@ -760,7 +760,7 @@ export default function Simulator() {
     const query = searchQuery.toUpperCase().trim();
     if (query.length === 0) return [];
     return Object.values(marketData)
-      .filter(stock => stock.symbol.toUpperCase().includes(query) || (stock.name || '').toUpperCase().includes(query))
+      .filter(stock => (stock.price ?? 0) > 0 && (stock.symbol.toUpperCase().includes(query) || (stock.name || '').toUpperCase().includes(query)))
       .slice(0, 8);
   }, [searchQuery, marketData]);
 
@@ -1551,9 +1551,9 @@ export default function Simulator() {
               </div>
               <div className="text-right">
                 <div className="text-xl font-black text-primary dark:text-[#e8f0e0]">{formatMoney(selectedStockDetail.price)}</div>
-                <div className={`text-xs font-bold mt-0.5 flex items-center gap-1 justify-end ${selectedStockDetail.change >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                  {selectedStockDetail.change >= 0 ? <FaArrowTrendUp className="text-[10px]" /> : <FaArrowTrendDown className="text-[10px]" />}
-                  {selectedStockDetail.change >= 0 ? '+' : ''}{selectedStockDetail.changePercent.toFixed(2)}%
+                <div className={`text-xs font-bold mt-0.5 flex items-center gap-1 justify-end ${(selectedStockDetail.change ?? 0) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                  {(selectedStockDetail.change ?? 0) >= 0 ? <FaArrowTrendUp className="text-[10px]" /> : <FaArrowTrendDown className="text-[10px]" />}
+                  {(selectedStockDetail.change ?? 0) >= 0 ? '+' : ''}{(selectedStockDetail.changePercent ?? 0).toFixed(2)}%
                 </div>
               </div>
             </div>
