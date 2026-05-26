@@ -187,9 +187,15 @@ def run_price_pass(tickers: list, sleep_time: int):
             cp = d["price"]
             if cp <= 0:
                 continue  # skip delisted / suspended / zero-price securities
-            prev_close = prev_closes.get(ticker, cp)
-            change     = round(cp - prev_close, 2)
-            change_pct = round((change / prev_close) * 100, 4) if prev_close else 0.0
+            stored_prev = prev_closes.get(ticker, 0.0)
+            # Use yesterday's close when available; fall back to today's open
+            effective_prev = stored_prev if stored_prev > 0 else d["open_price"]
+            if effective_prev > 0:
+                change     = round(cp - effective_prev, 2)
+                change_pct = round((change / effective_prev) * 100, 4)
+            else:
+                change     = 0.0
+                change_pct = 0.0
             upserts.append({
                 "symbol":        ticker,
                 "price":         cp,
