@@ -184,7 +184,9 @@ def run_price_pass(tickers: list, sleep_time: int):
 
         upserts = []
         for ticker, d in prices.items():
-            cp         = d["price"]
+            cp = d["price"]
+            if cp <= 0:
+                continue  # skip delisted / suspended / zero-price securities
             prev_close = prev_closes.get(ticker, cp)
             change     = round(cp - prev_close, 2)
             change_pct = round((change / prev_close) * 100, 4) if prev_close else 0.0
