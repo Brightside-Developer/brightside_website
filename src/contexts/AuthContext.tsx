@@ -4,6 +4,25 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { User, Session } from '@supabase/supabase-js';
 
+// Read the stored Supabase session from localStorage synchronously so the
+// navbar can render the correct auth state on the very first paint without
+// waiting for the async getSession() network verification.
+function getStoredUser(): User | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const key = Object.keys(localStorage).find(
+      k => k.startsWith('sb-') && k.endsWith('-auth-token')
+    );
+    if (!key) return null;
+    const stored = JSON.parse(localStorage.getItem(key) ?? '{}');
+    const expiresAt: number | undefined = stored?.expires_at;
+    if (expiresAt && expiresAt * 1000 < Date.now()) return null;
+    return (stored?.user as User) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 interface Profile {
   photo_url?: string;
   full_name?: string;
@@ -36,10 +55,12 @@ export const AuthContext = createContext<AuthContextType>({
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(getStoredUser);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [authLoading, setAuthLoading] = useState<boolean>(true);
+  // authLoading is false immediately if we found a stored session — the
+  // navbar renders the correct button on the first paint in that case.
+  const [authLoading, setAuthLoading] = useState<boolean>(() => getStoredUser() === null);
   const [adminLoading, setAdminLoading] = useState<boolean>(true);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [isBanned, setIsBanned] = useState<boolean>(false);
