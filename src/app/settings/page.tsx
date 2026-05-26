@@ -2,30 +2,47 @@
 
 import { useContext, useEffect, useState } from 'react';
 import { AuthContext } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 
 type Theme = 'light' | 'dark';
 
 export default function SettingsPage() {
-  const { user, supabase, authLoading } = useContext(AuthContext);
+  const { user, authLoading, savePreference } = useContext(AuthContext);
   const [theme, setTheme] = useState<Theme>('light');
 
+  // Load theme: prefer DB value, fall back to localStorage
   useEffect(() => {
-    const stored = localStorage.getItem('darkMode');
-    const isDark = stored === 'true';
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setTheme(isDark ? 'dark' : 'light');
-  }, []);
+    if (!user) {
+      const stored = localStorage.getItem('darkMode');
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setTheme(stored === 'true' ? 'dark' : 'light');
+      return;
+    }
+    supabase.from('profiles').select('preferences').eq('id', user.id).single().then(({ data }) => {
+      const prefs = data?.preferences as Record<string, unknown> | null;
+      if (prefs && typeof prefs.dark_mode === 'boolean') {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setTheme(prefs.dark_mode ? 'dark' : 'light');
+      } else {
+        const stored = localStorage.getItem('darkMode');
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setTheme(stored === 'true' ? 'dark' : 'light');
+      }
+    });
+  }, [user]);
 
   const applyTheme = (next: Theme) => {
     setTheme(next);
-    if (next === 'dark') {
+    const isDark = next === 'dark';
+    if (isDark) {
       document.documentElement.classList.add('dark');
       localStorage.setItem('darkMode', 'true');
     } else {
       document.documentElement.classList.remove('dark');
       localStorage.setItem('darkMode', 'false');
     }
+    savePreference('dark_mode', isDark);
   };
 
   useEffect(() => {
@@ -33,7 +50,6 @@ export default function SettingsPage() {
   }, [authLoading, user]);
 
   const handleSignOut = async () => {
-    if (!supabase) return;
     await supabase.auth.signOut();
     window.location.href = '/';
   };

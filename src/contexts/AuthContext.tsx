@@ -26,6 +26,7 @@ function getStoredUser(): User | null {
 interface Profile {
   photo_url?: string;
   full_name?: string;
+  preferences?: Record<string, unknown>;
 }
 
 interface AuthContextType {
@@ -39,6 +40,7 @@ interface AuthContextType {
   isBanned: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  savePreference: (key: string, value: unknown) => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType>({
@@ -52,6 +54,7 @@ export const AuthContext = createContext<AuthContextType>({
   isBanned: false,
   signOut: async () => {},
   refreshProfile: async () => {},
+  savePreference: async () => {},
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -73,19 +76,40 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [isBanned, setIsBanned] = useState<boolean>(false);
 
+  const applyPreferences = (prefs: Record<string, unknown>) => {
+    if (prefs.dark_mode === true) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('darkMode', 'true');
+    } else if (prefs.dark_mode === false) {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('darkMode', 'false');
+    }
+  };
+
   const fetchProfile = async (userId: string) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('photo_url, full_name')
+        .select('photo_url, full_name, preferences')
         .eq('id', userId)
         .single();
-      if (!error && data) setProfile(data);
-      else setProfile(null);
+      if (!error && data) {
+        setProfile(data);
+        if (data.preferences) applyPreferences(data.preferences as Record<string, unknown>);
+      } else {
+        setProfile(null);
+      }
     } catch (e) {
       console.error('Error fetching profile:', e);
       setProfile(null);
     }
+  };
+
+  const savePreference = async (key: string, value: unknown) => {
+    if (!user) return;
+    const updated = { ...(profile?.preferences ?? {}), [key]: value };
+    setProfile(prev => prev ? { ...prev, preferences: updated } : prev);
+    await supabase.from('profiles').update({ preferences: updated }).eq('id', user.id);
   };
 
   const checkAdminAndBan = async (userId: string) => {
@@ -145,7 +169,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, supabase, authLoading, adminLoading, isAdmin, isBanned, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ user, session, profile, supabase, authLoading, adminLoading, isAdmin, isBanned, signOut, refreshProfile, savePreference }}>
       {children}
     </AuthContext.Provider>
   );
