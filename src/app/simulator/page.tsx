@@ -851,18 +851,19 @@ export default function Simulator() {
       };
 
       if (mode === 'competition') {
-        const { error } = await supabase
-          .from('competition_portfolios')
-          .update({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error } = await withTimeout<any>(
+          supabase.from('competition_portfolios').update({
             cash: newCash,
             holdings: dbHoldings,
             total_value: newTotal,
             updated_at: new Date().toISOString(),
-          })
-          .eq('uid', user.id)
-          .eq('competition_id', competition!.id);
+          }).eq('uid', user.id).eq('competition_id', competition!.id),
+          10000,
+          { error: { message: 'Request timed out — try again.' } }
+        );
 
-        if (error) { console.error('Competition trade persist error:', error); return { error: 'Failed to save trade. Check your connection.' }; }
+        if (error) { console.error('Competition trade persist error:', error); return { error: error.message ?? 'Failed to save trade. Check your connection.' }; }
 
         setCompCash(newCash);
         setCompHoldings(updatedHoldings);
@@ -879,12 +880,14 @@ export default function Simulator() {
         const now = Date.now();
         setCompSnapshots(prev => [...prev, { t: now, v: newTotal }].slice(-365));
       } else {
-        const { error } = await supabase
-          .from('game_state')
-          .update({ cash: newCash, holdings: dbHoldings, total_value: newTotal })
-          .eq('uid', user.id);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error } = await withTimeout<any>(
+          supabase.from('game_state').update({ cash: newCash, holdings: dbHoldings, total_value: newTotal }).eq('uid', user.id),
+          10000,
+          { error: { message: 'Request timed out — try again.' } }
+        );
 
-        if (error) { console.error('Trade persist error:', error); return { error: 'Failed to save trade. Check your connection.' }; }
+        if (error) { console.error('Trade persist error:', error); return { error: error.message ?? 'Failed to save trade. Check your connection.' }; }
 
         setCash(newCash);
         setHoldings(updatedHoldings);
