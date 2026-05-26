@@ -12,7 +12,7 @@ export default function Partnerships() {
       {/* Page Hero */}
       <PageHero
         eyebrow="Our Partners"
-        title={<>Together, we go <em className="text-rust dark:text-mint not-italic font-serif">further</em></>}
+        title={<>Together, we go <em className="text-rust dark:text-mint font-serif">further</em></>}
         description="We partner with organizations that share our mission of making financial literacy accessible to everyone. Together, we're building a financially confident future."
       />
 

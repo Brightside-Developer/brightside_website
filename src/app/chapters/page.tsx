@@ -99,7 +99,7 @@ export default function Chapters() {
       {/* Hero */}
       <PageHero
         eyebrow="Our Chapters"
-        title={<>Brightside is <em className="text-rust dark:text-mint not-italic">growing nationwide</em></>}
+        title={<>Brightside is <em className="text-rust dark:text-mint">growing nationwide</em></>}
         description="We're building a network of local chapters across the United States, bringing financial literacy education directly into communities."
       />
 

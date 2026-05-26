@@ -237,7 +237,7 @@ export default function Courses() {
       {/* --- HERO --- */}
       <PageHero
         eyebrow="Full Curriculum"
-        title={<>Three programs. <em>One mission.</em></>}
+        title={<>Three programs. <em className="text-secondary">One mission.</em></>}
         description="Every Brightside curriculum is built by certified educators and financial professionals, designed for the real money challenges people face at each stage of life."
       />
 

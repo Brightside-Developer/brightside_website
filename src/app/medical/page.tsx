@@ -185,7 +185,7 @@ export default function MedicalFinances() {
       {/* Page Hero */}
       <PageHero
         eyebrow="Medical Financial Literacy"
-        title={<>Healthcare shouldn&apos;t cost you <em className="text-rust dark:text-mint not-italic">everything</em></>}
+        title={<>Healthcare shouldn&apos;t cost you <em className="text-rust dark:text-mint">everything</em></>}
         description="Medical debt is the #1 cause of personal bankruptcy in America. Learn how to understand your coverage, dispute incorrect bills, leverage tax-free healthcare accounts, and build a robust medical safety net."
       />
 

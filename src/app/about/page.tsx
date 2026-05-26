@@ -122,7 +122,7 @@ export default function About() {
       {/* --- HERO SECTION --- */}
       <PageHero
         eyebrow="Our Story"
-        title={<>Built on the belief that <em>everyone deserves</em> financial confidence</>}
+        title={<>Built on the belief that <em className="text-secondary">everyone deserves</em> financial confidence</>}
         description="Brightside Finance Foundation is a comprehensive initiative designed to empower students and adults with essential financial literacy skills. By providing accessible tools, interactive workshops, and tailored resources, Brightside equips individuals to confidently manage budgets, navigate financial challenges, and build a strong foundation for long-term financial independence."
       />
 
