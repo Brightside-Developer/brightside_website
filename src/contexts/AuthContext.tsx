@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useLayoutEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { User, Session } from '@supabase/supabase-js';
 
@@ -55,13 +55,21 @@ export const AuthContext = createContext<AuthContextType>({
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(getStoredUser);
+  // Start null/true so server and client initial renders match (no hydration mismatch).
+  // useLayoutEffect syncs from localStorage before the browser paints, giving instant auth UI.
+  const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  // authLoading is false immediately if we found a stored session — the
-  // navbar renders the correct button on the first paint in that case.
-  const [authLoading, setAuthLoading] = useState<boolean>(() => getStoredUser() === null);
+  const [authLoading, setAuthLoading] = useState<boolean>(true);
   const [adminLoading, setAdminLoading] = useState<boolean>(true);
+
+  useLayoutEffect(() => {
+    const stored = getStoredUser();
+    if (stored) {
+      setUser(stored);
+      setAuthLoading(false);
+    }
+  }, []);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [isBanned, setIsBanned] = useState<boolean>(false);
 

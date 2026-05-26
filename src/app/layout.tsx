@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import { Playfair_Display, DM_Sans, DM_Mono } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/contexts/AuthContext';
-import DarkModeScript from '@/components/DarkModeScript';
 import Navbar from '@/components/Navbar';
 import ConditionalFooter from '@/components/ConditionalFooter';
 
@@ -46,7 +45,7 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        <DarkModeScript />
+        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var m=localStorage.getItem('darkMode');if(m==='true'){document.documentElement.classList.add('dark')}else{document.documentElement.classList.remove('dark')}}catch(e){}})();` }} />
       </head>
       <body className="min-h-full flex flex-col bg-warm-white dark:bg-[#1a1f1a] text-charcoal dark:text-[#e8f0e0] transition-colors duration-200">
         <AuthProvider>
