@@ -68,10 +68,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useLayoutEffect(() => {
     const stored = getStoredUser();
-    if (stored) {
-      setUser(stored);
-      setAuthLoading(false);
-    }
+    if (stored) setUser(stored);
+    // Always clear authLoading before paint so the navbar never stays blank.
+    // getSession() will update user state asynchronously if needed.
+    setAuthLoading(false);
   }, []);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [isBanned, setIsBanned] = useState<boolean>(false);
@@ -129,15 +129,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      setAuthLoading(false);
       if (session?.user) {
-        // Profile and session are enough to show the navbar — clear authLoading now
         fetchProfile(session.user.id);
-        setAuthLoading(false);
-        // Admin/ban check runs in background; adminLoading tracks it separately
         await checkAdminAndBan(session.user.id);
-      } else {
-        setAuthLoading(false);
       }
+      setAdminLoading(false);
+    }).catch(() => {
+      setAuthLoading(false);
       setAdminLoading(false);
     });
 
