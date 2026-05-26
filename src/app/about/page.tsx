@@ -113,10 +113,6 @@ export default function About() {
     },
   ];
 
-  const partners = [
-    'Financial Freedom Initiative',
-  ];
-
   return (
     <div className="flex flex-col">
       {/* --- HERO SECTION --- */}
@@ -261,33 +257,6 @@ export default function About() {
               </RevealOnScroll>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* --- PARTNERS CHIPS --- */}
-      <section className="bg-cream dark:bg-[#111511] py-16 px-6 md:px-16 text-center transition-colors duration-200">
-        <div className="max-w-[900px] mx-auto">
-          <RevealOnScroll>
-            <span className="font-mono text-[11px] tracking-[0.15em] uppercase text-primary-light dark:text-[#6b9960] block mb-3">
-              {'// Partner Network'}
-            </span>
-            <h2 className="font-serif text-[clamp(1.8rem,3vw,2.5rem)] font-black text-primary dark:text-[#e8f0e0] mb-6">
-              Organizations we work with
-            </h2>
-          </RevealOnScroll>
-
-          <RevealOnScroll delay={0.2}>
-            <div className="flex flex-wrap justify-center gap-3.5 mt-8">
-              {partners.map((p) => (
-                <span
-                  key={p}
-                  className="bg-white dark:bg-[#242924] border border-primary/6 dark:border-mint/10 rounded-xl px-6 py-3 font-semibold text-sm text-primary dark:text-[#e8f0e0] shadow-sm hover:border-sage dark:hover:border-mint hover:shadow-md transition-all cursor-pointer"
-                >
-                  {p}
-                </span>
-              ))}
-            </div>
-          </RevealOnScroll>
         </div>
       </section>
 
