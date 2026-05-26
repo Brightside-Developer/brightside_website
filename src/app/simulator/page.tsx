@@ -158,8 +158,12 @@ export default function Simulator() {
   const [enrolling, setEnrolling] = useState(false);
 
   const [lbTab, setLbTab] = useState<'main' | 'competition'>('main');
-  const [mainLb, setMainLb] = useState<LeaderboardEntry[]>([]);
-  const [compLb, setCompLb] = useState<LeaderboardEntry[]>([]);
+  const [mainLb, setMainLb] = useState<LeaderboardEntry[]>(() => {
+    try { return JSON.parse(localStorage.getItem('lb_main') ?? '[]'); } catch { return []; }
+  });
+  const [compLb, setCompLb] = useState<LeaderboardEntry[]>(() => {
+    try { return JSON.parse(localStorage.getItem('lb_comp') ?? '[]'); } catch { return []; }
+  });
   const [lbLoading, setLbLoading] = useState(false);
   const [lbLoaded, setLbLoaded] = useState(false);
   const [lbError, setLbError] = useState(false);
@@ -1024,8 +1028,14 @@ export default function Simulator() {
         setLbError(true);
         setLbLoaded(false);
       } else {
-        if (gotMain) setMainLb(mainResult.data as LeaderboardEntry[]);
-        if (gotComp) setCompLb(compResult.data as LeaderboardEntry[]);
+        if (gotMain) {
+          setMainLb(mainResult.data as LeaderboardEntry[]);
+          try { localStorage.setItem('lb_main', JSON.stringify(mainResult.data)); } catch {}
+        }
+        if (gotComp) {
+          setCompLb(compResult.data as LeaderboardEntry[]);
+          try { localStorage.setItem('lb_comp', JSON.stringify(compResult.data)); } catch {}
+        }
         setLbLoaded(true);
       }
     } catch (err) {
@@ -1041,6 +1051,15 @@ export default function Simulator() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (gameMode === 'leaderboard' && !lbLoaded) loadLeaderboard();
   }, [gameMode]);
+
+  // Eager background load: once competition state settles (loaded or timed out),
+  // start fetching leaderboard data so it's ready before the user clicks the tab.
+  useEffect(() => {
+    if (compLoading || lbLoaded || lbLoading || !user?.id) return;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    loadLeaderboard();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [compLoading, user?.id]);
 
   const selectedStockDetail = detailTicker ? marketData[detailTicker] : null;
 

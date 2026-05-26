@@ -145,6 +145,42 @@ CREATE POLICY "Users update own comp portfolio"
   ON public.competition_portfolios FOR UPDATE USING (auth.uid() = uid);
 
 -- ── 7. Leaderboard RPC functions ──────────────────────────────
+-- Trigger: sync OAuth name + avatar into profiles on every auth insert/update
+-- so leaderboard queries never need to touch auth.users (cross-schema JOIN is slow).
+CREATE OR REPLACE FUNCTION public.sync_auth_to_profile()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  INSERT INTO public.profiles (id, full_name, photo_url)
+  VALUES (
+    NEW.id,
+    COALESCE(
+      NULLIF(TRIM(NEW.raw_user_meta_data->>'full_name'), ''),
+      NULLIF(TRIM(NEW.raw_user_meta_data->>'name'), ''),
+      split_part(NEW.email, '@', 1)
+    ),
+    COALESCE(NEW.raw_user_meta_data->>'avatar_url', NULL)
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    full_name = CASE
+      WHEN NULLIF(TRIM(EXCLUDED.full_name), '') IS NOT NULL THEN EXCLUDED.full_name
+      ELSE profiles.full_name
+    END,
+    photo_url = COALESCE(EXCLUDED.photo_url, profiles.photo_url);
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_auth_user_upsert ON auth.users;
+CREATE TRIGGER on_auth_user_upsert
+  AFTER INSERT OR UPDATE ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.sync_auth_to_profile();
+
+-- Indexes for ORDER BY — without these Postgres sorts the full table in memory.
+CREATE INDEX IF NOT EXISTS idx_game_state_total_value
+  ON public.game_state(total_value DESC NULLS LAST);
+CREATE INDEX IF NOT EXISTS idx_comp_portfolios_comp_value
+  ON public.competition_portfolios(competition_id, total_value DESC NULLS LAST);
+
 CREATE OR REPLACE FUNCTION public.get_main_leaderboard()
 RETURNS TABLE(
   uid          UUID,
@@ -154,28 +190,18 @@ RETURNS TABLE(
   return_pct   NUMERIC,
   updated_at   TIMESTAMPTZ
 )
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
-AS $$
-BEGIN
-  RETURN QUERY
+LANGUAGE sql SECURITY DEFINER SET search_path = public STABLE AS $$
   SELECT
     g.uid,
-    COALESCE(
-      NULLIF(TRIM(p.full_name), ''),
-      NULLIF(TRIM(au.raw_user_meta_data->>'full_name'), ''),
-      NULLIF(TRIM(au.raw_user_meta_data->>'name'), ''),
-      'Anonymous'
-    )::TEXT,
+    COALESCE(NULLIF(TRIM(p.full_name), ''), 'Anonymous')::TEXT,
     p.photo_url::TEXT,
     g.total_value,
     ROUND(((g.total_value - 100000.0) / 100000.0 * 100.0)::NUMERIC, 2),
     g.updated_at
   FROM   public.game_state g
-  LEFT JOIN public.profiles p  ON p.id  = g.uid
-  LEFT JOIN auth.users      au ON au.id = g.uid
+  LEFT JOIN public.profiles p ON p.id = g.uid
   ORDER  BY g.total_value DESC
   LIMIT  100;
-END;
 $$;
 
 CREATE OR REPLACE FUNCTION public.get_competition_leaderboard(comp_id UUID)
@@ -188,31 +214,21 @@ RETURNS TABLE(
   enrolled_at  TIMESTAMPTZ,
   updated_at   TIMESTAMPTZ
 )
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
-AS $$
-BEGIN
-  RETURN QUERY
+LANGUAGE sql SECURITY DEFINER SET search_path = public STABLE AS $$
   SELECT
     cp.uid,
-    COALESCE(
-      NULLIF(TRIM(p.full_name), ''),
-      NULLIF(TRIM(au.raw_user_meta_data->>'full_name'), ''),
-      NULLIF(TRIM(au.raw_user_meta_data->>'name'), ''),
-      'Anonymous'
-    )::TEXT,
+    COALESCE(NULLIF(TRIM(p.full_name), ''), 'Anonymous')::TEXT,
     p.photo_url::TEXT,
     cp.total_value,
     ROUND(((cp.total_value - c.starting_cash) / c.starting_cash * 100.0)::NUMERIC, 2),
     cp.enrolled_at,
     cp.updated_at
   FROM   public.competition_portfolios cp
-  JOIN   public.competitions           c  ON c.id   = cp.competition_id
-  LEFT JOIN public.profiles            p  ON p.id  = cp.uid
-  LEFT JOIN auth.users                 au ON au.id = cp.uid
+  JOIN   public.competitions           c ON c.id  = cp.competition_id
+  LEFT JOIN public.profiles            p ON p.id  = cp.uid
   WHERE  cp.competition_id = comp_id
   ORDER  BY cp.total_value DESC
   LIMIT  100;
-END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.get_main_leaderboard()               TO anon, authenticated;

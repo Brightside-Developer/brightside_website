@@ -113,12 +113,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const checkAdminAndBan = async (userId: string) => {
-    const [{ data: adminRow }, { data: banRow }] = await Promise.all([
+    const [adminRes, banRes] = await Promise.all([
       supabase.from('admin_users').select('user_id').eq('user_id', userId).maybeSingle(),
       supabase.from('banned_users').select('user_id').eq('user_id', userId).maybeSingle(),
     ]);
-    setIsAdmin(!!adminRow);
-    setIsBanned(!!banRow);
+    if (adminRes.error) console.error('[auth] admin_users query error:', adminRes.error);
+    if (banRes.error)   console.error('[auth] banned_users query error:', banRes.error);
+    console.log('[auth] admin check — uid:', userId, 'adminRow:', adminRes.data, 'err:', adminRes.error?.message);
+    setIsAdmin(!!adminRes.data);
+    setIsBanned(!!banRes.data);
   };
 
   const refreshProfile = async () => {
@@ -146,6 +149,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (currentSession?.user) {
         fetchProfile(currentSession.user.id);
         setAuthLoading(false);
+        setAdminLoading(true); // hold open while we re-check admin status
         await checkAdminAndBan(currentSession.user.id);
       } else {
         setProfile(null);
@@ -165,6 +169,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (e) {
       console.error('Error signing out:', e);
     }
+    // Always clear local session — signOut() swallows its own error when the
+    // token is already expired (returns { error } instead of throwing), which
+    // means the localStorage token can survive. Wipe it manually as a backstop.
+    setUser(null);
+    setSession(null);
+    setProfile(null);
+    setIsAdmin(false);
+    setIsBanned(false);
+    try {
+      Object.keys(localStorage)
+        .filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'))
+        .forEach(k => localStorage.removeItem(k));
+    } catch {}
   };
 
   return (
