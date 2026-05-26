@@ -196,8 +196,30 @@ export default function AdminPage() {
 
   if (adminLoading || !isAdmin) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-warm-white dark:bg-[#1a1f1a]">
-        <FaSpinner className="animate-spin text-2xl text-primary-light dark:text-mint" />
+      <div className="flex-1 bg-warm-white dark:bg-[#1a1f1a]">
+        <div className="max-w-[1200px] mx-auto px-6 md:px-12 py-28 animate-pulse">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+            <div>
+              <div className="h-2.5 w-20 bg-primary/10 dark:bg-mint/10 rounded mb-2" />
+              <div className="h-8 w-48 bg-primary/10 dark:bg-mint/10 rounded" />
+            </div>
+            <div className="h-7 w-44 bg-primary/8 dark:bg-mint/8 rounded-full" />
+          </div>
+          <div className="h-10 w-64 bg-white dark:bg-[#242924] rounded-full mb-8 border border-primary/8 dark:border-mint/10" />
+          <div className="bg-white dark:bg-[#242924] border border-primary/8 dark:border-mint/10 rounded-[20px] shadow-sm overflow-hidden">
+            <div className="px-6 md:px-8 py-5 border-b border-primary/6 dark:border-mint/8">
+              <div className="h-5 w-40 bg-primary/10 dark:bg-mint/10 rounded" />
+            </div>
+            {[0, 1, 2, 3].map(i => (
+              <div key={i} className="px-6 md:px-8 py-5 flex items-center gap-4 border-b border-primary/4 dark:border-mint/5 last:border-0">
+                <div className="h-4 w-36 bg-primary/10 dark:bg-mint/10 rounded flex-1" />
+                <div className="h-4 w-24 bg-primary/8 dark:bg-mint/8 rounded hidden sm:block" />
+                <div className="h-6 w-20 bg-primary/8 dark:bg-mint/8 rounded-lg" />
+                <div className="h-6 w-14 bg-primary/8 dark:bg-mint/8 rounded-lg" />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
@@ -378,9 +400,37 @@ export default function AdminPage() {
               </div>
 
               {compLoading ? (
-                <div className="flex items-center justify-center py-16">
-                  <FaSpinner className="animate-spin text-xl text-primary-light dark:text-mint" />
-                </div>
+                <table className="min-w-full">
+                  <tbody className="animate-pulse">
+                    {[0, 1, 2].map(i => (
+                      <tr key={i} className="border-b border-primary/4 dark:border-mint/5 last:border-0">
+                        <td className="px-6 md:px-8 py-4">
+                          <div className="h-3.5 w-36 bg-primary/10 dark:bg-mint/10 rounded mb-1.5" />
+                          <div className="h-2.5 w-16 bg-primary/6 dark:bg-mint/6 rounded" />
+                        </td>
+                        <td className="px-4 py-4 hidden sm:table-cell">
+                          <div className="h-3 w-24 bg-primary/8 dark:bg-mint/8 rounded mb-1.5" />
+                          <div className="h-3 w-24 bg-primary/8 dark:bg-mint/8 rounded" />
+                        </td>
+                        <td className="px-4 py-4 hidden md:table-cell">
+                          <div className="h-3.5 w-16 bg-primary/10 dark:bg-mint/10 rounded" />
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="h-6 w-20 bg-primary/8 dark:bg-mint/8 rounded-lg" />
+                        </td>
+                        <td className="px-4 py-4 hidden lg:table-cell">
+                          <div className="h-3 w-16 bg-primary/6 dark:bg-mint/6 rounded" />
+                        </td>
+                        <td className="px-6 md:px-8 py-4">
+                          <div className="flex gap-2 justify-end">
+                            <div className="h-6 w-14 bg-primary/8 dark:bg-mint/8 rounded-lg" />
+                            <div className="h-6 w-16 bg-rose-100 dark:bg-rose-900/20 rounded-lg" />
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               ) : competitions.length === 0 ? (
                 <p className="px-8 py-12 text-center text-sm text-[#9ca3af] dark:text-[#6b7d65]">
                   No competitions yet. Create one above.
@@ -472,9 +522,38 @@ export default function AdminPage() {
             </div>
 
             {usersLoading ? (
-              <div className="flex items-center justify-center py-16">
-                <FaSpinner className="animate-spin text-xl text-primary-light dark:text-mint" />
-              </div>
+              <table className="min-w-full">
+                <tbody className="animate-pulse">
+                  {[0, 1, 2, 3, 4].map(i => (
+                    <tr key={i} className="border-b border-primary/4 dark:border-mint/5 last:border-0">
+                      <td className="px-6 md:px-8 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-primary/10 dark:bg-mint/10 shrink-0" />
+                          <div>
+                            <div className="h-3.5 w-32 bg-primary/10 dark:bg-mint/10 rounded mb-1.5" />
+                            <div className="h-2.5 w-40 bg-primary/6 dark:bg-mint/6 rounded" />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-right">
+                        <div className="h-3.5 w-20 bg-primary/10 dark:bg-mint/10 rounded ml-auto" />
+                      </td>
+                      <td className="px-4 py-4 text-right hidden sm:table-cell">
+                        <div className="h-3.5 w-14 bg-primary/8 dark:bg-mint/8 rounded ml-auto" />
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <div className="h-5 w-16 bg-primary/8 dark:bg-mint/8 rounded-full mx-auto" />
+                      </td>
+                      <td className="px-6 md:px-8 py-4">
+                        <div className="flex gap-1.5 justify-end">
+                          <div className="h-6 w-14 bg-primary/8 dark:bg-mint/8 rounded-lg" />
+                          <div className="h-6 w-14 bg-rose-100 dark:bg-rose-900/20 rounded-lg" />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             ) : users.length === 0 ? (
               <p className="px-8 py-12 text-center text-sm text-[#9ca3af] dark:text-[#6b7d65]">No active players yet.</p>
             ) : (

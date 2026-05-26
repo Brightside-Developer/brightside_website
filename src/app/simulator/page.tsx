@@ -1372,15 +1372,44 @@ export default function Simulator() {
               />
             </div>
             <span className="font-mono text-[10px] text-[#9ca3af] dark:text-[#6b7d65] whitespace-nowrap flex items-center gap-1.5 shrink-0">
-              {marketLoading ? <><FaSpinner className="animate-spin" /> loading…</> : `${sortedStocks.length.toLocaleString()} stocks`}
+              {marketLoading ? <span className="inline-block w-14 h-2 bg-primary/10 dark:bg-mint/10 rounded animate-pulse" /> : `${sortedStocks.length.toLocaleString()} stocks`}
             </span>
           </div>
         </div>
 
         {marketLoading && Object.keys(marketData).length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-4 text-[#9ca3af] dark:text-[#6b7d65]">
-            <FaSpinner className="animate-spin text-2xl text-primary-light dark:text-mint" />
-            <p className="text-sm font-semibold">Syncing market data…</p>
+          <div className="overflow-x-auto">
+            <table className="min-w-full">
+              <thead>
+                <tr className="border-b border-primary/6 dark:border-mint/8 select-none">
+                  <th className="font-mono text-[10px] text-[#9ca3af] dark:text-[#6b7d65] uppercase tracking-wider text-left px-6 md:px-8 py-3.5">Symbol</th>
+                  <th className="font-mono text-[10px] text-[#9ca3af] dark:text-[#6b7d65] uppercase tracking-wider text-right px-4 py-3.5">Price</th>
+                  <th className="font-mono text-[10px] text-[#9ca3af] dark:text-[#6b7d65] uppercase tracking-wider text-right px-4 py-3.5">Change</th>
+                  <th className="font-mono text-[10px] text-[#9ca3af] dark:text-[#6b7d65] uppercase tracking-wider text-right px-6 md:px-8 py-3.5 hidden sm:table-cell">Volume</th>
+                  <th className="w-10 px-3 py-3.5" />
+                </tr>
+              </thead>
+              <tbody className="animate-pulse">
+                {Array.from({ length: 12 }).map((_, i) => (
+                  <tr key={i} className="border-b border-primary/4 dark:border-mint/5 last:border-0">
+                    <td className="px-6 md:px-8 py-3.5">
+                      <div className="h-3.5 w-14 bg-primary/10 dark:bg-mint/10 rounded mb-1.5" />
+                      <div className="h-2.5 w-24 bg-primary/6 dark:bg-mint/6 rounded" />
+                    </td>
+                    <td className="px-4 py-3.5 text-right">
+                      <div className="h-3.5 w-16 bg-primary/10 dark:bg-mint/10 rounded ml-auto" />
+                    </td>
+                    <td className="px-4 py-3.5 text-right">
+                      <div className="h-5 w-16 bg-primary/8 dark:bg-mint/8 rounded-full ml-auto" />
+                    </td>
+                    <td className="px-6 md:px-8 py-3.5 text-right hidden sm:table-cell">
+                      <div className="h-3 w-14 bg-primary/6 dark:bg-mint/6 rounded ml-auto" />
+                    </td>
+                    <td className="px-3 py-3.5" />
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -1749,8 +1778,18 @@ export default function Simulator() {
               transition={{ duration: 0.2 }}
             >
               {compLoading ? (
-                <div className="flex items-center justify-center py-20">
-                  <FaSpinner className="animate-spin text-2xl text-primary-light dark:text-mint" />
+                <div className="bg-white dark:bg-[#242924] border border-primary/8 dark:border-mint/10 rounded-[24px] p-8 md:p-12 shadow-sm animate-pulse">
+                  <div className="h-2.5 w-24 bg-primary/10 dark:bg-mint/10 rounded mb-3" />
+                  <div className="h-7 w-56 bg-primary/10 dark:bg-mint/10 rounded mb-5" />
+                  <div className="flex gap-6 mb-7">
+                    {[0, 1, 2].map(j => (
+                      <div key={j}>
+                        <div className="h-2 w-10 bg-primary/6 dark:bg-mint/6 rounded mb-2" />
+                        <div className="h-4 w-24 bg-primary/10 dark:bg-mint/10 rounded" />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="h-11 w-40 bg-primary/10 dark:bg-mint/10 rounded-full" />
                 </div>
               ) : !competition ? (
                 <div className="bg-white dark:bg-[#242924] border border-primary/8 dark:border-mint/10 rounded-[20px] p-12 shadow-sm text-center">
@@ -1862,13 +1901,33 @@ export default function Simulator() {
                   <h3 className="font-serif text-lg font-bold text-primary dark:text-[#e8f0e0]">
                     {lbTab === 'main' ? 'All-Time Leaderboard' : (competition?.name ?? 'Competition Leaderboard')}
                   </h3>
-                  {lbLoading && <FaSpinner className="animate-spin text-primary-light dark:text-mint" />}
+                  {lbLoading && <div className="w-20 h-3 bg-primary/10 dark:bg-mint/10 rounded animate-pulse" />}
                 </div>
 
                 {lbLoading ? (
-                  <div className="flex items-center justify-center py-20 text-[#9ca3af]">
-                    <FaSpinner className="animate-spin text-2xl" />
-                  </div>
+                  <table className="min-w-full">
+                    <tbody className="animate-pulse">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <tr key={i} className="border-b border-primary/4 dark:border-mint/5 last:border-0">
+                          <td className="px-6 md:px-8 py-4">
+                            <div className="h-3.5 w-6 bg-primary/10 dark:bg-mint/10 rounded" />
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-7 h-7 rounded-full bg-primary/10 dark:bg-mint/10 shrink-0" />
+                              <div className="h-3.5 w-28 bg-primary/10 dark:bg-mint/10 rounded" />
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 text-right">
+                            <div className="h-3.5 w-20 bg-primary/10 dark:bg-mint/10 rounded ml-auto" />
+                          </td>
+                          <td className="px-6 md:px-8 py-4 text-right">
+                            <div className="h-3.5 w-14 bg-primary/8 dark:bg-mint/8 rounded ml-auto" />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="min-w-full">

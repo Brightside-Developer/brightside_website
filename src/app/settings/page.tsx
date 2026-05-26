@@ -39,8 +39,23 @@ export default function SettingsPage() {
   };
 
   if (authLoading) return (
-    <div className="flex justify-center items-center flex-1 bg-warm-white dark:bg-[#1a1f1a]">
-      <div className="w-6 h-6 rounded-full border-2 border-primary/20 border-t-primary dark:border-mint/20 dark:border-t-mint animate-spin" />
+    <div className="flex flex-col flex-1 bg-warm-white dark:bg-[#1a1f1a] px-6 py-20 md:px-16">
+      <div className="max-w-[520px] mx-auto w-full animate-pulse">
+        <div className="mb-8">
+          <div className="h-2.5 w-20 bg-primary/10 dark:bg-mint/10 rounded mb-2.5" />
+          <div className="h-8 w-32 bg-primary/10 dark:bg-mint/10 rounded" />
+        </div>
+        {[0, 1].map(i => (
+          <div key={i} className="bg-white dark:bg-[#242924] border border-primary/6 dark:border-mint/10 rounded-[20px] p-7 shadow-sm mb-4">
+            <div className="h-3.5 w-28 bg-primary/10 dark:bg-mint/10 rounded mb-2" />
+            <div className="h-2.5 w-52 bg-primary/6 dark:bg-mint/6 rounded mb-5" />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="h-28 bg-primary/6 dark:bg-mint/6 rounded-2xl" />
+              <div className="h-28 bg-primary/6 dark:bg-mint/6 rounded-2xl" />
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 
