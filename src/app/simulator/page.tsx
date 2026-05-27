@@ -1031,6 +1031,24 @@ export default function Simulator() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
+  // Competition leaderboard patch: loadLeaderboard fires before competition state is
+  // set, so comp_id is null on the first run. Once competition resolves, fetch it separately.
+  useEffect(() => {
+    if (!competition?.id) return;
+    const TIMEOUT = 20000;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    withTimeout<any>(
+      supabase.rpc('get_competition_leaderboard', { comp_id: competition.id }),
+      TIMEOUT, { data: null }
+    ).then(result => {
+      if (Array.isArray(result.data)) {
+        setCompLb(result.data as LeaderboardEntry[]);
+        try { localStorage.setItem('lb_comp', JSON.stringify(result.data)); } catch {}
+      }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [competition?.id]);
+
   const selectedStockDetail = detailTicker ? marketData[detailTicker] : null;
 
   const currentHoldingsForModal = modalMode === 'competition' ? compHoldings : holdings;
