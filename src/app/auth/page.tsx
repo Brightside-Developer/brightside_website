@@ -209,9 +209,9 @@ export default function AuthPage() {
 
           <p className="text-xs text-[#9ca3af] dark:text-[#6b7d65] mt-5 leading-relaxed">
             By continuing you agree to our{' '}
-            <Link href="#" className="underline hover:text-primary dark:hover:text-mint transition-colors">Terms of Service</Link>{' '}
+            <Link href="/terms" className="underline hover:text-primary dark:hover:text-mint transition-colors">Terms of Service</Link>{' '}
             and{' '}
-            <Link href="#" className="underline hover:text-primary dark:hover:text-mint transition-colors">Privacy Policy</Link>.
+            <Link href="/privacy" className="underline hover:text-primary dark:hover:text-mint transition-colors">Privacy Policy</Link>.
           </p>
         </div>
       </div>
