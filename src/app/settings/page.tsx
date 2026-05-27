@@ -8,7 +8,7 @@ import Link from 'next/link';
 type Theme = 'light' | 'dark';
 
 export default function SettingsPage() {
-  const { user, authLoading, savePreference } = useContext(AuthContext);
+  const { user, authLoading, savePreference, signOut } = useContext(AuthContext);
   const [theme, setTheme] = useState<Theme>('light');
 
   // Load theme: prefer DB value, fall back to localStorage
@@ -50,7 +50,7 @@ export default function SettingsPage() {
   }, [authLoading, user]);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    await signOut();
     window.location.href = '/';
   };
 

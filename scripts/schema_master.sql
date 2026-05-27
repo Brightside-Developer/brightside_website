@@ -99,8 +99,14 @@ ALTER TABLE public.game_state ADD COLUMN IF NOT EXISTS total_value NUMERIC NOT N
 ALTER TABLE public.game_state ADD COLUMN IF NOT EXISTS updated_at  TIMESTAMPTZ DEFAULT NOW();
 ALTER TABLE public.game_state ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users manage own game state" ON public.game_state;
+DROP POLICY IF EXISTS "Admins manage game_state"    ON public.game_state;
 CREATE POLICY "Users manage own game state"
   ON public.game_state FOR ALL USING (auth.uid() = uid);
+-- Admin override so the admin dashboard can reset/modify any user's portfolio.
+CREATE POLICY "Admins manage game_state"
+  ON public.game_state FOR ALL TO authenticated
+  USING      (EXISTS (SELECT 1 FROM public.admin_users WHERE user_id = auth.uid()))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.admin_users WHERE user_id = auth.uid()));
 
 -- ── 5. admin_users ────────────────────────────────────────────
 -- Simple allow-list for admin access. Rows inserted manually.
@@ -195,7 +201,7 @@ CREATE POLICY "Users update own comp portfolio"
 CREATE OR REPLACE FUNCTION public.sync_auth_to_profile()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
-  INSERT INTO public.profiles (id, full_name, photo_url)
+  INSERT INTO public.profiles (id, full_name, email, photo_url)
   VALUES (
     NEW.id,
     COALESCE(
@@ -203,6 +209,7 @@ BEGIN
       NULLIF(TRIM(NEW.raw_user_meta_data->>'name'), ''),
       split_part(NEW.email, '@', 1)
     ),
+    NEW.email,
     COALESCE(NEW.raw_user_meta_data->>'avatar_url', NULL)
   )
   ON CONFLICT (id) DO UPDATE SET
@@ -210,6 +217,7 @@ BEGIN
       WHEN NULLIF(TRIM(EXCLUDED.full_name), '') IS NOT NULL THEN EXCLUDED.full_name
       ELSE profiles.full_name
     END,
+    email     = COALESCE(EXCLUDED.email, profiles.email),
     photo_url = COALESCE(EXCLUDED.photo_url, profiles.photo_url);
   RETURN NEW;
 END;

@@ -39,6 +39,33 @@ interface StockData {
   avg_daily_chg?: number;
 }
 
+// Single source of truth for mapping a raw `stocks` row (from a fetch or a
+// realtime payload) into StockData. Keeps the 18 columns in one place so
+// adding/renaming a column only touches here.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapRowToStock(row: any): StockData {
+  return {
+    symbol: row.symbol,
+    name: row.name,
+    price: row.price,
+    change: row.change,
+    changePercent: row.changePercent,
+    volume: row.volume,
+    dayHigh: row.dayHigh,
+    dayLow: row.dayLow,
+    high52w: row.high52w,
+    low52w: row.low52w,
+    bid: row.bid,
+    ask: row.ask,
+    market_cap: row.market_cap,
+    pe_ratio: row.pe_ratio,
+    revenue_growth: row.revenue_growth,
+    open_price: row.open_price,
+    close_price: row.close_price,
+    avg_daily_chg: row.avg_daily_chg,
+  };
+}
+
 interface Holding {
   shares: number;
   avgCost: number;
@@ -259,17 +286,7 @@ export default function Simulator() {
         if (updated && updated.symbol) {
           setMarketData(prev => ({
             ...prev,
-            [updated.symbol]: {
-              symbol: updated.symbol, name: updated.name,
-              price: updated.price, change: updated.change,
-              changePercent: updated.changePercent, volume: updated.volume,
-              dayHigh: updated.dayHigh, dayLow: updated.dayLow,
-              high52w: updated.high52w, low52w: updated.low52w,
-              bid: updated.bid, ask: updated.ask,
-              market_cap: updated.market_cap, pe_ratio: updated.pe_ratio,
-              revenue_growth: updated.revenue_growth, open_price: updated.open_price,
-              close_price: updated.close_price, avg_daily_chg: updated.avg_daily_chg,
-            },
+            [updated.symbol]: mapRowToStock(updated),
           }));
         }
       })
@@ -292,43 +309,15 @@ export default function Simulator() {
 
         if (data && data.length > 0) {
           data.forEach(row => {
-            fullMarket[row.symbol] = {
-              symbol: row.symbol,
-              name: row.name,
-              price: row.price,
-              change: row.change,
-              changePercent: row.changePercent,
-              volume: row.volume,
-              dayHigh: row.dayHigh,
-              dayLow: row.dayLow,
-              high52w: row.high52w,
-              low52w: row.low52w,
-              bid: row.bid,
-              ask: row.ask,
-              market_cap: row.market_cap,
-              pe_ratio: row.pe_ratio,
-              revenue_growth: row.revenue_growth,
-              open_price: row.open_price,
-              close_price: row.close_price,
-              avg_daily_chg: row.avg_daily_chg,
-            };
+            fullMarket[row.symbol] = mapRowToStock(row);
           });
 
           setMarketData(prev => {
             const updated = { ...prev, ...fullMarket };
             const liteCache: Record<string, Omit<StockData, 'symbol'>> = {};
             Object.keys(updated).forEach(sym => {
-              const d = updated[sym];
-              liteCache[sym] = {
-                name: d.name, price: d.price, change: d.change,
-                changePercent: d.changePercent, volume: d.volume,
-                dayHigh: d.dayHigh, dayLow: d.dayLow,
-                high52w: d.high52w, low52w: d.low52w,
-                bid: d.bid, ask: d.ask,
-                market_cap: d.market_cap, pe_ratio: d.pe_ratio,
-                revenue_growth: d.revenue_growth, open_price: d.open_price,
-                close_price: d.close_price, avg_daily_chg: d.avg_daily_chg,
-              };
+              const { symbol: _symbol, ...rest } = updated[sym];
+              liteCache[sym] = rest;
             });
             localStorage.setItem('market_data_lite', JSON.stringify(liteCache));
             return updated;
@@ -447,6 +436,15 @@ export default function Simulator() {
         }
         const comp = compsResult.data[0] as Competition;
         setCompetition(comp);
+
+        // Restore this competition's trade log + chart snapshots from localStorage
+        // (they're not stored server-side, so without this they reset on every reload).
+        try {
+          const ctl = localStorage.getItem(`comp_trade_log_${comp.id}`);
+          if (ctl) setCompTradeLog(JSON.parse(ctl));
+          const csnaps = localStorage.getItem(`comp_snapshots_${comp.id}`);
+          if (csnaps) setCompSnapshots(JSON.parse(csnaps));
+        } catch {}
 
         // competition_portfolios must wait for comp.id — fire after competitions resolves.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -854,13 +852,22 @@ export default function Simulator() {
           name: marketData[ticker]?.name || ticker,
           shares: qty, price, total: cost,
         };
-        setCompTradeLog(prev => [entry, ...prev].slice(0, 200));
+        const cid = competition!.id;
+        setCompTradeLog(prev => {
+          const updated = [entry, ...prev].slice(0, 200);
+          try { localStorage.setItem(`comp_trade_log_${cid}`, JSON.stringify(updated)); } catch {}
+          return updated;
+        });
         const now = Date.now();
-        setCompSnapshots(prev => [...prev, { t: now, v: newTotal }].slice(-365));
+        setCompSnapshots(prev => {
+          const updated = [...prev, { t: now, v: newTotal }].slice(-365);
+          try { localStorage.setItem(`comp_snapshots_${cid}`, JSON.stringify(updated)); } catch {}
+          return updated;
+        });
       } else {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error } = await withTimeout<any>(
-          supabase.from('game_state').update({ cash: newCash, holdings: dbHoldings, total_value: newTotal }).eq('uid', user.id),
+          supabase.from('game_state').update({ cash: newCash, holdings: dbHoldings, total_value: newTotal, updated_at: new Date().toISOString() }).eq('uid', user.id),
           10000,
           { error: { message: 'Request timed out — try again.' } }
         );
@@ -954,6 +961,10 @@ export default function Simulator() {
       setCompShorts({});
       setCompTradeLog([]);
       setCompSnapshots([]);
+      try {
+        localStorage.removeItem(`comp_trade_log_${competition.id}`);
+        localStorage.removeItem(`comp_snapshots_${competition.id}`);
+      } catch {}
     }
   };
 

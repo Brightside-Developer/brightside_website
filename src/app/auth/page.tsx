@@ -52,10 +52,13 @@ export default function AuthPage() {
         });
         if (error) throw error;
         if (data?.user) {
+          // The sync_auth_to_profile trigger already created the profiles row on
+          // auth.users insert, so a plain insert would hit a duplicate-key conflict
+          // and silently drop dob/email. Upsert merges into the existing row.
           const { error: profileErr } = await supabase
             .from('profiles')
-            .insert([{ id: data.user.id, full_name: fullName, dob, email }]);
-          if (profileErr) console.warn('Profile insert error:', profileErr);
+            .upsert({ id: data.user.id, full_name: fullName, dob, email }, { onConflict: 'id' });
+          if (profileErr) console.warn('Profile upsert error:', profileErr);
         }
       }
     } catch (e) {
