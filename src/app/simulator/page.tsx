@@ -285,6 +285,7 @@ export default function Simulator() {
         const { data, error } = await supabase
           .from('stocks')
           .select('*')
+          .order('symbol')
           .range(from, from + PAGE_SIZE - 1);
 
         if (error) { console.error('Supabase stocks fetch error:', error); break; }
