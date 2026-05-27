@@ -132,7 +132,7 @@ function getCompStatus(comp: Competition): CompStatus {
 }
 
 export default function Simulator() {
-  const { user, session, authLoading, isBanned } = useAuth();
+  const { user, authLoading, isBanned } = useAuth();
 
   const [activeTab, setActiveTab] = useState<'portfolio' | 'stocks'>('portfolio');
   const [gameMode, setGameMode] = useState<'main' | 'competition' | 'leaderboard'>('main');
@@ -343,10 +343,11 @@ export default function Simulator() {
   }
 
   useEffect(() => {
-    // Wait for session (verified JWT) not just user (from localStorage cache).
-    // On Vercel, loadAll firing before session is confirmed causes game_state
-    // queries to run unauthenticated, RLS blocks the read, and portfolio resets.
-    if (!session?.user?.id) return;
+    // Gate on user (from the cached token) NOT the React `session` state —
+    // getSession() can fail to resolve, leaving `session` null forever, which
+    // would silently block every data load. The supabase client attaches the
+    // JWT from localStorage automatically, so user?.id is the reliable trigger.
+    if (!user?.id) return;
     let mounted = true;
 
     const normalizeHoldings = (raw: Record<string, unknown>) => {
@@ -370,7 +371,7 @@ export default function Simulator() {
       .channel('game_state_updates')
       .on('postgres_changes', {
         event: 'UPDATE', schema: 'public', table: 'game_state',
-        filter: `uid=eq.${session!.user.id}`,
+        filter: `uid=eq.${user.id}`,
       }, payload => {
         if (payload.new) {
           const newCash = (payload.new as { cash?: number; holdings?: Record<string, unknown> }).cash ?? 100000.0;
@@ -394,7 +395,7 @@ export default function Simulator() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const [gsResult, compsResult] = await Promise.all([
           withTimeout<any>(
-            supabase.from('game_state').select('cash, holdings').eq('uid', session!.user.id).maybeSingle(),
+            supabase.from('game_state').select('cash, holdings').eq('uid', user.id).maybeSingle(),
             20000, TIMED_OUT
           ),
           withTimeout<any>(
@@ -416,15 +417,16 @@ export default function Simulator() {
           setShorts(normalizedShorts);
           localStorage.setItem('game_state', JSON.stringify({ cash: newCash, holdings: normalizedHoldings }));
         } else if (!gsResult.error) {
-          // Genuine new user — no row exists yet.
-          const initialCash = 100000.0;
-          setCash(initialCash);
-          setHoldings({});
+          // Null read with no error: either a genuine new user OR an auth race
+          // where the JWT wasn't attached yet. Create the row only if absent
+          // (ignoreDuplicates won't overwrite existing data), but do NOT reset
+          // the UI state — a genuine new user already shows the 100k/{} defaults,
+          // and a false-null keeps whatever the cache loaded. This prevents the
+          // "portfolio reset to 100k" bug without depending on session state.
           await supabase.from('game_state').upsert(
-            { uid: session!.user.id, cash: initialCash, holdings: {} },
+            { uid: user.id, cash: 100000.0, holdings: {} },
             { onConflict: 'uid', ignoreDuplicates: true }
           );
-          if (mounted) localStorage.setItem('game_state', JSON.stringify({ cash: initialCash, holdings: {} }));
         } else {
           console.warn('game_state load timed out — keeping cached state');
         }
@@ -450,7 +452,7 @@ export default function Simulator() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const enrollResult = await withTimeout<any>(
           supabase.from('competition_portfolios').select('cash, holdings, total_value')
-            .eq('uid', session!.user.id).eq('competition_id', comp.id).maybeSingle(),
+            .eq('uid', user.id).eq('competition_id', comp.id).maybeSingle(),
           20000, { data: null, error: null }
         );
 
@@ -477,7 +479,7 @@ export default function Simulator() {
       mounted = false;
       supabase.removeChannel(stateChannel);
     };
-  }, [session?.user?.id, compRetry]);
+  }, [user?.id, compRetry]);
 
   const { totalValue, returnAmt, returnPct, holdingsList } = useMemo(() => {
     let holdingsTotal = 0;
@@ -1039,7 +1041,7 @@ export default function Simulator() {
     }
     // If user switches to competition tab and load already timed out (no data, not loading),
     // kick off a fresh load.
-    if (gameMode === 'competition' && !compLoading && !competition && session?.user?.id) {
+    if (gameMode === 'competition' && !compLoading && !competition && user?.id) {
       setCompRetry(r => r + 1);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1048,11 +1050,11 @@ export default function Simulator() {
   // Eager background load: fire main leaderboard immediately when user is ready —
   // it doesn't need competition data. Competition leaderboard fires once comp settles.
   useEffect(() => {
-    if (lbLoaded || lbLoading || !session?.user?.id) return;
+    if (lbLoaded || lbLoading || !user?.id) return;
     // eslint-disable-next-line react-hooks/exhaustive-deps
     loadLeaderboard();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.user?.id]);
+  }, [user?.id]);
 
   // Competition leaderboard patch: loadLeaderboard fires before competition state is
   // set, so comp_id is null on the first run. Once competition resolves, fetch it separately.
