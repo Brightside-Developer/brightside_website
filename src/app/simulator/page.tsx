@@ -402,11 +402,11 @@ export default function Simulator() {
         const [gsResult, compsResult] = await Promise.all([
           withTimeout<any>(
             supabase.from('game_state').select('cash, holdings').eq('uid', user.id).maybeSingle(),
-            10000, TIMED_OUT
+            20000, TIMED_OUT
           ),
           withTimeout<any>(
             supabase.from('competitions').select('*').order('start_date', { ascending: false }).limit(1),
-            10000, { data: null, error: null }
+            20000, { data: null, error: null }
           ),
         ]);
 
@@ -449,7 +449,7 @@ export default function Simulator() {
         const enrollResult = await withTimeout<any>(
           supabase.from('competition_portfolios').select('cash, holdings, total_value')
             .eq('uid', user.id).eq('competition_id', comp.id).maybeSingle(),
-          10000, { data: null, error: null }
+          20000, { data: null, error: null }
         );
 
         if (!mounted) return;
@@ -1018,8 +1018,16 @@ export default function Simulator() {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (gameMode === 'leaderboard' && !lbLoaded) loadLeaderboard();
+    if (gameMode === 'leaderboard' && !lbLoaded && !lbLoading) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      loadLeaderboard();
+    }
+    // If user switches to competition tab and load already timed out (no data, not loading),
+    // kick off a fresh load.
+    if (gameMode === 'competition' && !compLoading && !competition && user?.id) {
+      setCompRetry(r => r + 1);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameMode]);
 
   // Eager background load: fire main leaderboard immediately when user is ready —
