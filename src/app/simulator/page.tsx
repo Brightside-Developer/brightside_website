@@ -395,11 +395,14 @@ export default function Simulator() {
       if (mounted) { setCompLoading(true); setCompError(false); }
       try {
         // Fire game_state + competitions in parallel — neither depends on the other.
+        // Use a distinct timeout sentinel so a slow DB never looks like "no row exists".
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const TIMED_OUT = { data: null, error: { message: 'timeout' } } as any;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const [gsResult, compsResult] = await Promise.all([
           withTimeout<any>(
             supabase.from('game_state').select('cash, holdings').eq('uid', user.id).maybeSingle(),
-            10000, { data: null, error: null }
+            10000, TIMED_OUT
           ),
           withTimeout<any>(
             supabase.from('competitions').select('*').order('start_date', { ascending: false }).limit(1),
@@ -409,7 +412,9 @@ export default function Simulator() {
 
         if (!mounted) return;
 
-        // Process game_state
+        // Process game_state — only create new state if row genuinely doesn't exist
+        // (no data AND no error). A timeout produces an error sentinel, so we skip
+        // the reset path and keep whatever localStorage has.
         if (gsResult.data) {
           const newCash = gsResult.data.cash ?? 100000.0;
           const { normalizedHoldings, normalizedShorts } = normalizeHoldings(gsResult.data.holdings || {});
@@ -418,6 +423,7 @@ export default function Simulator() {
           setShorts(normalizedShorts);
           localStorage.setItem('game_state', JSON.stringify({ cash: newCash, holdings: normalizedHoldings }));
         } else if (!gsResult.error) {
+          // Genuine new user — no row exists yet.
           const initialCash = 100000.0;
           setCash(initialCash);
           setHoldings({});
@@ -426,6 +432,8 @@ export default function Simulator() {
             { onConflict: 'uid', ignoreDuplicates: true }
           );
           if (mounted) localStorage.setItem('game_state', JSON.stringify({ cash: initialCash, holdings: {} }));
+        } else {
+          console.warn('game_state load timed out — keeping cached state');
         }
 
         // Process competitions
