@@ -68,6 +68,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useLayoutEffect(() => {
     const stored = getStoredUser();
+    // Intentional synchronous setState before paint — seeds auth UI from the
+    // cached token so the navbar renders correctly on first paint.
     if (stored) setUser(stored);
     // Always clear authLoading before paint so the navbar never stays blank.
     // getSession() will update user state asynchronously if needed.
@@ -115,9 +117,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const checkAdminAndBan = async (userId: string) => {
     // Guard each query with a timeout so a slow/cold DB can never leave
     // adminLoading stuck true (which would hide admin-gated pages forever).
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const withTimeout = (p: PromiseLike<any>) =>
-      Promise.race([Promise.resolve(p), new Promise<any>(r => setTimeout(() => r({ data: null, error: null }), 8000))]);
+    const withTimeout = <T,>(p: PromiseLike<T>): Promise<T> =>
+      Promise.race([
+        Promise.resolve(p),
+        new Promise<T>(r => setTimeout(() => r({ data: null, error: null } as unknown as T), 8000)),
+      ]);
     const [adminRes, banRes] = await Promise.all([
       withTimeout(supabase.from('admin_users').select('user_id').eq('user_id', userId).maybeSingle()),
       withTimeout(supabase.from('banned_users').select('user_id').eq('user_id', userId).maybeSingle()),
