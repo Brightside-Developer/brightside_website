@@ -113,13 +113,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const checkAdminAndBan = async (userId: string) => {
+    // Guard each query with a timeout so a slow/cold DB can never leave
+    // adminLoading stuck true (which would hide admin-gated pages forever).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const withTimeout = (p: PromiseLike<any>) =>
+      Promise.race([Promise.resolve(p), new Promise<any>(r => setTimeout(() => r({ data: null, error: null }), 8000))]);
     const [adminRes, banRes] = await Promise.all([
-      supabase.from('admin_users').select('user_id').eq('user_id', userId).maybeSingle(),
-      supabase.from('banned_users').select('user_id').eq('user_id', userId).maybeSingle(),
+      withTimeout(supabase.from('admin_users').select('user_id').eq('user_id', userId).maybeSingle()),
+      withTimeout(supabase.from('banned_users').select('user_id').eq('user_id', userId).maybeSingle()),
     ]);
     if (adminRes.error) console.error('[auth] admin_users query error:', adminRes.error);
     if (banRes.error)   console.error('[auth] banned_users query error:', banRes.error);
-    console.log('[auth] admin check — uid:', userId, 'adminRow:', adminRes.data, 'err:', adminRes.error?.message);
     setIsAdmin(!!adminRes.data);
     setIsBanned(!!banRes.data);
   };
@@ -143,21 +147,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setAdminLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+    // IMPORTANT: this callback runs while supabase-js holds the auth lock.
+    // Awaiting any supabase .from()/.rpc() call here deadlocks — those calls
+    // need the same lock to attach the token, so they wait on a lock we're
+    // still holding. The whole app's queries then stall until they time out.
+    // Keep this callback synchronous and defer DB work so the lock releases.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       if (currentSession?.user) {
-        fetchProfile(currentSession.user.id);
         setAuthLoading(false);
         setAdminLoading(true); // hold open while we re-check admin status
-        await checkAdminAndBan(currentSession.user.id);
+        const uid = currentSession.user.id;
+        setTimeout(() => {
+          fetchProfile(uid);
+          checkAdminAndBan(uid).finally(() => setAdminLoading(false));
+        }, 0);
       } else {
         setProfile(null);
         setIsAdmin(false);
         setIsBanned(false);
         setAuthLoading(false);
+        setAdminLoading(false);
       }
-      setAdminLoading(false);
     });
 
     return () => { subscription.unsubscribe(); };
