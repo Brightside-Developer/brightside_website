@@ -47,3 +47,8 @@ UPDATE public.profiles p
 SET email = u.email
 FROM auth.users u
 WHERE p.id = u.id AND (p.email IS NULL OR p.email = '');
+
+-- ── Leave-competition support: allow users to delete their own enrollment ──
+DROP POLICY IF EXISTS "Users delete own comp portfolio" ON public.competition_portfolios;
+CREATE POLICY "Users delete own comp portfolio"
+  ON public.competition_portfolios FOR DELETE USING (auth.uid() = uid);

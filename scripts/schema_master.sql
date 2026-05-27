@@ -187,12 +187,16 @@ ALTER TABLE public.competition_portfolios ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Anyone reads competition portfolios" ON public.competition_portfolios;
 DROP POLICY IF EXISTS "Users insert own comp portfolio"     ON public.competition_portfolios;
 DROP POLICY IF EXISTS "Users update own comp portfolio"     ON public.competition_portfolios;
+DROP POLICY IF EXISTS "Users delete own comp portfolio"     ON public.competition_portfolios;
 CREATE POLICY "Anyone reads competition portfolios"
   ON public.competition_portfolios FOR SELECT USING (true);
 CREATE POLICY "Users insert own comp portfolio"
   ON public.competition_portfolios FOR INSERT WITH CHECK (auth.uid() = uid);
 CREATE POLICY "Users update own comp portfolio"
   ON public.competition_portfolios FOR UPDATE USING (auth.uid() = uid);
+-- Allow a user to leave a competition (delete their own enrollment row).
+CREATE POLICY "Users delete own comp portfolio"
+  ON public.competition_portfolios FOR DELETE USING (auth.uid() = uid);
 
 -- ── 9. Leaderboard RPCs + supporting objects ──────────────────
 

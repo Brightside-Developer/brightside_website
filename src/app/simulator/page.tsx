@@ -759,6 +759,18 @@ export default function Simulator() {
   const processTrade = async (type: 'BUY' | 'SELL' | 'SHORT' | 'COVER', ticker: string, qty: number, mode: 'main' | 'competition' = 'main') => {
     if (!user) return { error: 'Please log in to trade.' };
     if (tradeInFlight) return { error: 'Transaction in progress. Please wait...' };
+
+    // Competition trades are only allowed within the competition window.
+    if (mode === 'competition') {
+      if (!competition) return { error: 'No competition loaded.' };
+      const now = new Date();
+      const start = new Date(competition.start_date);
+      const end = new Date(competition.end_date);
+      end.setHours(23, 59, 59, 999); // end_date is a DATE — include the whole final day
+      if (now < start) return { error: `Trading opens ${start.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}.` };
+      if (now > end) return { error: 'This competition has ended — trading is closed.' };
+    }
+
     setTradeInFlight(true);
 
     try {
@@ -993,6 +1005,32 @@ export default function Simulator() {
     }
   };
 
+  const leaveCompetition = async () => {
+    if (!user || !competition) return;
+    if (!confirm('Leave this competition? Your competition portfolio and trade history will be permanently deleted.')) return;
+    setEnrolling(true);
+    try {
+      const { error } = await supabase
+        .from('competition_portfolios')
+        .delete()
+        .eq('uid', user.id)
+        .eq('competition_id', competition.id);
+      if (error) { console.error('leave competition error:', error); alert('Could not leave the competition. Please try again.'); return; }
+      setCompEnrolled(false);
+      setCompCash(competition.starting_cash);
+      setCompHoldings({});
+      setCompShorts({});
+      setCompTradeLog([]);
+      setCompSnapshots([]);
+      try {
+        localStorage.removeItem(`comp_trade_log_${competition.id}`);
+        localStorage.removeItem(`comp_snapshots_${competition.id}`);
+      } catch {}
+    } finally {
+      setEnrolling(false);
+    }
+  };
+
   const loadLeaderboard = async () => {
     if (lbLoading) return;
     setLbLoading(true);
@@ -1195,6 +1233,15 @@ export default function Simulator() {
                   className="text-xs font-semibold text-[#9ca3af] dark:text-[#6b7d65] hover:text-rose-500 dark:hover:text-rose-400 transition-colors cursor-pointer"
                 >
                   Reset
+                </button>
+              )}
+              {user && isComp && compEnrolled && (
+                <button
+                  onClick={leaveCompetition}
+                  disabled={enrolling}
+                  className="text-xs font-semibold text-[#9ca3af] dark:text-[#6b7d65] hover:text-rose-500 dark:hover:text-rose-400 transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  Leave
                 </button>
               )}
             </div>
