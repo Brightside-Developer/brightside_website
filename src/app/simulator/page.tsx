@@ -346,91 +346,6 @@ export default function Simulator() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  useEffect(() => {
-    if (!user?.id) return;
-    let mounted = true;
-
-    const loadGameState = async () => {
-      const { data, error } = await supabase
-        .from('game_state')
-        .select('cash, holdings')
-        .eq('uid', user.id)
-        .maybeSingle();
-
-      if (!mounted) return;
-      if (error) { console.error('Failed to load game state:', error); return; }
-
-      if (data) {
-        const newCash = data.cash ?? 100000.0;
-        const rawHoldings = data.holdings || {};
-        const normalizedHoldings: Record<string, Holding> = {};
-        const normalizedShorts: Record<string, ShortPosition> = {};
-        Object.keys(rawHoldings).forEach(key => {
-          if (key.startsWith('SHORT:')) {
-            const sym = key.slice(6);
-            const val = rawHoldings[key];
-            normalizedShorts[sym] = { shares: val?.shares || 0, avgShortPrice: val?.avgShortPrice || 0 };
-          } else {
-            const val = rawHoldings[key];
-            normalizedHoldings[key] = typeof val === 'number'
-              ? { shares: val, avgCost: 0 }
-              : { shares: val?.shares || 0, avgCost: val?.avgCost || 0 };
-          }
-        });
-        setCash(newCash);
-        setHoldings(normalizedHoldings);
-        setShorts(normalizedShorts);
-        localStorage.setItem('game_state', JSON.stringify({ cash: newCash, holdings: normalizedHoldings }));
-      } else {
-        const initialCash = 100000.0;
-        setCash(initialCash);
-        setHoldings({});
-        await supabase
-          .from('game_state')
-          .upsert({ uid: user.id, cash: initialCash, holdings: {} }, { onConflict: 'uid', ignoreDuplicates: true });
-        if (mounted) localStorage.setItem('game_state', JSON.stringify({ cash: initialCash, holdings: {} }));
-      }
-    };
-
-    loadGameState();
-
-    const stateChannel = supabase
-      .channel('game_state_updates')
-      .on('postgres_changes', {
-        event: 'UPDATE', schema: 'public', table: 'game_state',
-        filter: `uid=eq.${user.id}`,
-      }, payload => {
-        if (payload.new) {
-          const newCash = (payload.new as { cash?: number; holdings?: Record<string, unknown> }).cash ?? 100000.0;
-          const rawHoldings = (payload.new as { cash?: number; holdings?: Record<string, unknown> }).holdings || {};
-          const normalizedHoldings: Record<string, Holding> = {};
-          const normalizedShorts: Record<string, ShortPosition> = {};
-          Object.keys(rawHoldings).forEach(key => {
-            if (key.startsWith('SHORT:')) {
-              const sym = key.slice(6);
-              const val = rawHoldings[key] as { shares?: number; avgShortPrice?: number } | null;
-              normalizedShorts[sym] = { shares: val?.shares || 0, avgShortPrice: val?.avgShortPrice || 0 };
-            } else {
-              const val = rawHoldings[key] as number | { shares?: number; avgCost?: number } | null;
-              normalizedHoldings[key] = typeof val === 'number'
-                ? { shares: val, avgCost: 0 }
-                : { shares: (val as { shares?: number })?.shares || 0, avgCost: (val as { avgCost?: number })?.avgCost || 0 };
-            }
-          });
-          setCash(newCash);
-          setHoldings(normalizedHoldings);
-          setShorts(normalizedShorts);
-          localStorage.setItem('game_state', JSON.stringify({ cash: newCash, holdings: normalizedHoldings }));
-        }
-      })
-      .subscribe();
-
-    return () => {
-      mounted = false;
-      supabase.removeChannel(stateChannel);
-    };
-  }, [user?.id]);
-
   // Soft timeout: resolves to fallback instead of rejecting, so one slow query
   // doesn't block everything else.
   function withTimeout<T>(p: PromiseLike<T>, ms: number, fallback: T): Promise<T> {
@@ -441,70 +356,117 @@ export default function Simulator() {
     if (!user?.id) return;
     let mounted = true;
 
-    const loadCompetition = async () => {
+    const normalizeHoldings = (raw: Record<string, unknown>) => {
+      const normalizedHoldings: Record<string, Holding> = {};
+      const normalizedShorts: Record<string, ShortPosition> = {};
+      Object.keys(raw).forEach(key => {
+        if (key.startsWith('SHORT:')) {
+          const val = raw[key] as { shares?: number; avgShortPrice?: number } | null;
+          normalizedShorts[key.slice(6)] = { shares: val?.shares || 0, avgShortPrice: val?.avgShortPrice || 0 };
+        } else {
+          const val = raw[key] as number | { shares?: number; avgCost?: number } | null;
+          normalizedHoldings[key] = typeof val === 'number'
+            ? { shares: val, avgCost: 0 }
+            : { shares: (val as { shares?: number })?.shares || 0, avgCost: (val as { avgCost?: number })?.avgCost || 0 };
+        }
+      });
+      return { normalizedHoldings, normalizedShorts };
+    };
+
+    const stateChannel = supabase
+      .channel('game_state_updates')
+      .on('postgres_changes', {
+        event: 'UPDATE', schema: 'public', table: 'game_state',
+        filter: `uid=eq.${user.id}`,
+      }, payload => {
+        if (payload.new) {
+          const newCash = (payload.new as { cash?: number; holdings?: Record<string, unknown> }).cash ?? 100000.0;
+          const raw = (payload.new as { cash?: number; holdings?: Record<string, unknown> }).holdings || {};
+          const { normalizedHoldings, normalizedShorts } = normalizeHoldings(raw as Record<string, unknown>);
+          setCash(newCash);
+          setHoldings(normalizedHoldings);
+          setShorts(normalizedShorts);
+          localStorage.setItem('game_state', JSON.stringify({ cash: newCash, holdings: normalizedHoldings }));
+        }
+      })
+      .subscribe();
+
+    const loadAll = async () => {
       if (mounted) { setCompLoading(true); setCompError(false); }
       try {
+        // Fire game_state + competitions in parallel — neither depends on the other.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const compsResult = await withTimeout<any>(
-          supabase.from('competitions').select('*').order('start_date', { ascending: false }).limit(1),
-          15000,
-          { data: null, error: null }
-        );
+        const [gsResult, compsResult] = await Promise.all([
+          withTimeout<any>(
+            supabase.from('game_state').select('cash, holdings').eq('uid', user.id).maybeSingle(),
+            10000, { data: null, error: null }
+          ),
+          withTimeout<any>(
+            supabase.from('competitions').select('*').order('start_date', { ascending: false }).limit(1),
+            10000, { data: null, error: null }
+          ),
+        ]);
 
         if (!mounted) return;
+
+        // Process game_state
+        if (gsResult.data) {
+          const newCash = gsResult.data.cash ?? 100000.0;
+          const { normalizedHoldings, normalizedShorts } = normalizeHoldings(gsResult.data.holdings || {});
+          setCash(newCash);
+          setHoldings(normalizedHoldings);
+          setShorts(normalizedShorts);
+          localStorage.setItem('game_state', JSON.stringify({ cash: newCash, holdings: normalizedHoldings }));
+        } else if (!gsResult.error) {
+          const initialCash = 100000.0;
+          setCash(initialCash);
+          setHoldings({});
+          await supabase.from('game_state').upsert(
+            { uid: user.id, cash: initialCash, holdings: {} },
+            { onConflict: 'uid', ignoreDuplicates: true }
+          );
+          if (mounted) localStorage.setItem('game_state', JSON.stringify({ cash: initialCash, holdings: {} }));
+        }
+
+        // Process competitions
         if (!compsResult.data || compsResult.data.length === 0) {
           if (compsResult.error) setCompError(true);
           return;
         }
-
         const comp = compsResult.data[0] as Competition;
         setCompetition(comp);
 
+        // competition_portfolios must wait for comp.id — fire after competitions resolves.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const enrollResult = await withTimeout<any>(
           supabase.from('competition_portfolios').select('cash, holdings, total_value')
             .eq('uid', user.id).eq('competition_id', comp.id).maybeSingle(),
-          15000,
-          { data: null, error: null }
+          10000, { data: null, error: null }
         );
 
         if (!mounted) return;
-        if (enrollResult.error) {
-          console.error('enrollment fetch error:', enrollResult.error?.message);
-        }
-
+        if (enrollResult.error) console.error('enrollment fetch error:', enrollResult.error?.message);
         if (!enrollResult.error && enrollResult.data) {
           const enrollment = enrollResult.data;
           setCompEnrolled(true);
           setCompCash(enrollment.cash ?? comp.starting_cash);
-          const raw = enrollment.holdings || {};
-          const normalizedHoldings: Record<string, Holding> = {};
-          const normalizedShorts: Record<string, ShortPosition> = {};
-          Object.keys(raw).forEach(key => {
-            if (key.startsWith('SHORT:')) {
-              const sym = key.slice(6);
-              const val = raw[key];
-              normalizedShorts[sym] = { shares: val?.shares || 0, avgShortPrice: val?.avgShortPrice || 0 };
-            } else {
-              const val = raw[key];
-              normalizedHoldings[key] = typeof val === 'number'
-                ? { shares: val, avgCost: 0 }
-                : { shares: val?.shares || 0, avgCost: val?.avgCost || 0 };
-            }
-          });
+          const { normalizedHoldings, normalizedShorts } = normalizeHoldings(enrollment.holdings || {});
           setCompHoldings(normalizedHoldings);
           setCompShorts(normalizedShorts);
         }
       } catch (e) {
-        console.error('loadCompetition error:', e);
+        console.error('loadAll error:', e);
         if (mounted) setCompError(true);
       } finally {
         if (mounted) setCompLoading(false);
       }
     };
 
-    loadCompetition();
-    return () => { mounted = false; };
+    loadAll();
+    return () => {
+      mounted = false;
+      supabase.removeChannel(stateChannel);
+    };
   }, [user?.id, compRetry]);
 
   const { totalValue, returnAmt, returnPct, holdingsList } = useMemo(() => {
@@ -1052,14 +1014,14 @@ export default function Simulator() {
     if (gameMode === 'leaderboard' && !lbLoaded) loadLeaderboard();
   }, [gameMode]);
 
-  // Eager background load: once competition state settles (loaded or timed out),
-  // start fetching leaderboard data so it's ready before the user clicks the tab.
+  // Eager background load: fire main leaderboard immediately when user is ready —
+  // it doesn't need competition data. Competition leaderboard fires once comp settles.
   useEffect(() => {
-    if (compLoading || lbLoaded || lbLoading || !user?.id) return;
+    if (lbLoaded || lbLoading || !user?.id) return;
     // eslint-disable-next-line react-hooks/exhaustive-deps
     loadLeaderboard();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [compLoading, user?.id]);
+  }, [user?.id]);
 
   const selectedStockDetail = detailTicker ? marketData[detailTicker] : null;
 
