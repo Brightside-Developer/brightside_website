@@ -984,22 +984,33 @@ export default function Simulator() {
 
   const enrollInCompetition = async () => {
     if (!user || !competition) return;
+    if (getCompStatus(competition) === 'ended') { alert('This competition has ended.'); return; }
+
+    // Private competitions require the correct join code before enrolling.
+    if (competition.join_code) {
+      const entered = prompt('Enter the join code for this competition:');
+      if (entered === null) return; // user cancelled
+      if (entered.trim() !== competition.join_code) { alert('Incorrect join code.'); return; }
+    }
+
     setEnrolling(true);
     try {
+      // upsert (not insert) so a leftover row from a prior attempt doesn't
+      // cause a duplicate-key error that silently blocks joining.
       const { error } = await supabase
         .from('competition_portfolios')
-        .insert({
+        .upsert({
           uid: user.id,
           competition_id: competition.id,
           cash: competition.starting_cash,
           holdings: {},
           total_value: competition.starting_cash,
-        });
-      if (!error) {
-        setCompEnrolled(true);
-        setCompCash(competition.starting_cash);
-        setCompHoldings({});
-      }
+        }, { onConflict: 'uid,competition_id', ignoreDuplicates: true });
+      if (error) { console.error('enroll error:', error); alert('Could not join: ' + error.message); return; }
+      setCompEnrolled(true);
+      setCompCash(competition.starting_cash);
+      setCompHoldings({});
+      setCompShorts({});
     } finally {
       setEnrolling(false);
     }
@@ -1939,8 +1950,8 @@ export default function Simulator() {
                       </div>
 
                       {competition.join_code && (
-                        <div className="text-xs text-[#9ca3af] dark:text-[#6b7d65] mb-6 font-mono">
-                          Join code: <span className="font-bold text-primary dark:text-[#e8f0e0]">{competition.join_code}</span>
+                        <div className="text-xs text-[#9ca3af] dark:text-[#6b7d65] mb-6">
+                          🔒 Private competition — a join code is required.
                         </div>
                       )}
 
@@ -1969,6 +1980,16 @@ export default function Simulator() {
                     <span className="w-2 h-2 rounded-full bg-primary-light dark:bg-mint animate-pulse inline-block" />
                     Competition mode — {competition.name}
                   </div>
+                  {new Date() < new Date(competition.start_date) && (
+                    <div className="mb-4 text-xs font-semibold px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 text-amber-700 dark:text-amber-400">
+                      You&apos;re enrolled. Trading opens {new Date(competition.start_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}.
+                    </div>
+                  )}
+                  {getCompStatus(competition) === 'ended' && (
+                    <div className="mb-4 text-xs font-semibold px-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/40 text-gray-600 dark:text-gray-400">
+                      This competition has ended — trading is closed.
+                    </div>
+                  )}
                   {renderPortfolio(true)}
                 </div>
               )}
