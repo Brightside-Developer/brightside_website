@@ -164,22 +164,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const signOut = async () => {
-    try {
-      await supabase.auth.signOut();
-    } catch (e) {
-      console.error('Error signing out:', e);
-    }
-    // Always clear local session — signOut() swallows its own error when the
-    // token is already expired (returns { error } instead of throwing), which
-    // means the localStorage token can survive. Wipe it manually as a backstop.
+    // Race the API call against a 3s timeout — if Supabase's server is slow or
+    // the token is already expired, the await would hang forever and the button
+    // would appear to do nothing. The timeout guarantees logout always completes.
+    await Promise.race([
+      supabase.auth.signOut().catch(() => {}),
+      new Promise<void>(resolve => setTimeout(resolve, 3000)),
+    ]);
     setUser(null);
     setSession(null);
     setProfile(null);
     setIsAdmin(false);
     setIsBanned(false);
+    // Wipe all Supabase localStorage keys so getStoredUser() returns null on
+    // the next page load even if the API call didn't clear them.
     try {
       Object.keys(localStorage)
-        .filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'))
+        .filter(k => k.startsWith('sb-'))
         .forEach(k => localStorage.removeItem(k));
     } catch {}
   };
