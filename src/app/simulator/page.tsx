@@ -105,7 +105,7 @@ function getCompStatus(comp: Competition): CompStatus {
 }
 
 export default function Simulator() {
-  const { user, authLoading, isBanned } = useAuth();
+  const { user, session, authLoading, isBanned } = useAuth();
 
   const [activeTab, setActiveTab] = useState<'portfolio' | 'stocks'>('portfolio');
   const [gameMode, setGameMode] = useState<'main' | 'competition' | 'leaderboard'>('main');
@@ -353,7 +353,10 @@ export default function Simulator() {
   }
 
   useEffect(() => {
-    if (!user?.id) return;
+    // Wait for session (verified JWT) not just user (from localStorage cache).
+    // On Vercel, loadAll firing before session is confirmed causes game_state
+    // queries to run unauthenticated, RLS blocks the read, and portfolio resets.
+    if (!session?.user?.id) return;
     let mounted = true;
 
     const normalizeHoldings = (raw: Record<string, unknown>) => {
@@ -377,7 +380,7 @@ export default function Simulator() {
       .channel('game_state_updates')
       .on('postgres_changes', {
         event: 'UPDATE', schema: 'public', table: 'game_state',
-        filter: `uid=eq.${user.id}`,
+        filter: `uid=eq.${session!.user.id}`,
       }, payload => {
         if (payload.new) {
           const newCash = (payload.new as { cash?: number; holdings?: Record<string, unknown> }).cash ?? 100000.0;
@@ -401,7 +404,7 @@ export default function Simulator() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const [gsResult, compsResult] = await Promise.all([
           withTimeout<any>(
-            supabase.from('game_state').select('cash, holdings').eq('uid', user.id).maybeSingle(),
+            supabase.from('game_state').select('cash, holdings').eq('uid', session!.user.id).maybeSingle(),
             20000, TIMED_OUT
           ),
           withTimeout<any>(
@@ -428,7 +431,7 @@ export default function Simulator() {
           setCash(initialCash);
           setHoldings({});
           await supabase.from('game_state').upsert(
-            { uid: user.id, cash: initialCash, holdings: {} },
+            { uid: session!.user.id, cash: initialCash, holdings: {} },
             { onConflict: 'uid', ignoreDuplicates: true }
           );
           if (mounted) localStorage.setItem('game_state', JSON.stringify({ cash: initialCash, holdings: {} }));
@@ -448,7 +451,7 @@ export default function Simulator() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const enrollResult = await withTimeout<any>(
           supabase.from('competition_portfolios').select('cash, holdings, total_value')
-            .eq('uid', user.id).eq('competition_id', comp.id).maybeSingle(),
+            .eq('uid', session!.user.id).eq('competition_id', comp.id).maybeSingle(),
           20000, { data: null, error: null }
         );
 
@@ -475,7 +478,7 @@ export default function Simulator() {
       mounted = false;
       supabase.removeChannel(stateChannel);
     };
-  }, [user?.id, compRetry]);
+  }, [session?.user?.id, compRetry]);
 
   const { totalValue, returnAmt, returnPct, holdingsList } = useMemo(() => {
     let holdingsTotal = 0;
@@ -1024,7 +1027,7 @@ export default function Simulator() {
     }
     // If user switches to competition tab and load already timed out (no data, not loading),
     // kick off a fresh load.
-    if (gameMode === 'competition' && !compLoading && !competition && user?.id) {
+    if (gameMode === 'competition' && !compLoading && !competition && session?.user?.id) {
       setCompRetry(r => r + 1);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1033,11 +1036,11 @@ export default function Simulator() {
   // Eager background load: fire main leaderboard immediately when user is ready —
   // it doesn't need competition data. Competition leaderboard fires once comp settles.
   useEffect(() => {
-    if (lbLoaded || lbLoading || !user?.id) return;
+    if (lbLoaded || lbLoading || !session?.user?.id) return;
     // eslint-disable-next-line react-hooks/exhaustive-deps
     loadLeaderboard();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+  }, [session?.user?.id]);
 
   // Competition leaderboard patch: loadLeaderboard fires before competition state is
   // set, so comp_id is null on the first run. Once competition resolves, fetch it separately.
