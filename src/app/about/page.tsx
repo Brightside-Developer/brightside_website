@@ -122,6 +122,23 @@ export default function About() {
         description="Brightside Finance Foundation is a comprehensive initiative designed to empower students and adults with essential financial literacy skills. By providing accessible tools, interactive workshops, and tailored resources, Brightside equips individuals to confidently manage budgets, navigate financial challenges, and build a strong foundation for long-term financial independence."
       />
 
+      {/* --- ORG INFO (address + EIN) --- */}
+      <section className="bg-warm-white dark:bg-[#1a1f1a] px-6 md:px-16 pt-10 transition-colors duration-200">
+        <div className="max-w-[1100px] mx-auto flex flex-col sm:flex-row gap-4 sm:gap-10 justify-center text-center sm:text-left">
+          <div>
+            <div className="font-mono text-[10px] tracking-[0.18em] uppercase text-primary-light dark:text-mint mb-1.5">Mailing Address</div>
+            <div className="text-sm font-semibold text-primary dark:text-[#e8f0e0] leading-relaxed">
+              1069 Angel Falls Drive<br />Frisco, Texas 75036
+            </div>
+          </div>
+          <div className="hidden sm:block w-px bg-primary/10 dark:bg-mint/10" />
+          <div>
+            <div className="font-mono text-[10px] tracking-[0.18em] uppercase text-primary-light dark:text-mint mb-1.5">EIN</div>
+            <div className="text-sm font-semibold text-primary dark:text-[#e8f0e0] font-mono">41-4334340</div>
+          </div>
+        </div>
+      </section>
+
       {/* --- MISSION SECTION --- */}
       <section className="bg-warm-white dark:bg-[#1a1f1a] py-24 px-6 md:px-16 transition-colors duration-200">
         <div className="max-w-[1100px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">

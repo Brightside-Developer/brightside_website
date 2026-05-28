@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { FaXTwitter, FaLinkedin, FaFacebook, FaYoutube } from 'react-icons/fa6';
+import { FaInstagram } from 'react-icons/fa6';
 
 export default function Footer() {
   return (
@@ -64,18 +64,15 @@ export default function Footer() {
       <div className="max-w-[1100px] mx-auto border-t border-secondary/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-secondary/30 dark:text-[#8fa887] transition-colors duration-200">
         <span>© 2026 Brightside Finance Foundation, EIN: 41-4334340, 1069 Angel Falls Drive, Frisco, Texas, 75036</span>
         <div className="flex gap-3">
-          <Link href="#" aria-label="𝕏 (formerly Twitter)" className="w-9 h-9 border border-secondary/15 rounded-lg flex items-center justify-center text-secondary/50 hover:border-secondary hover:text-secondary transition-all">
-            <FaXTwitter className="text-sm" />
-          </Link>
-          <Link href="#" aria-label="LinkedIn" className="w-9 h-9 border border-secondary/15 rounded-lg flex items-center justify-center text-secondary/50 hover:border-secondary hover:text-secondary transition-all">
-            <FaLinkedin className="text-sm" />
-          </Link>
-          <Link href="#" aria-label="Facebook" className="w-9 h-9 border border-secondary/15 rounded-lg flex items-center justify-center text-secondary/50 hover:border-secondary hover:text-secondary transition-all">
-            <FaFacebook className="text-sm" />
-          </Link>
-          <Link href="#" aria-label="YouTube" className="w-9 h-9 border border-secondary/15 rounded-lg flex items-center justify-center text-secondary/50 hover:border-secondary hover:text-secondary transition-all">
-            <FaYoutube className="text-sm" />
-          </Link>
+          <a
+            href="https://www.instagram.com/brightsidefinancefoundation/"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Instagram"
+            className="w-9 h-9 border border-secondary/15 rounded-lg flex items-center justify-center text-secondary/50 hover:border-secondary hover:text-secondary transition-all"
+          >
+            <FaInstagram className="text-sm" />
+          </a>
         </div>
       </div>
     </footer>
