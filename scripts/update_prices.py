@@ -1,7 +1,16 @@
 #!/usr/bin/env python3
 """
-update_prices.py — Parallel stock price updater.
-Completes a full pass of all tracked tickers in under 3 minutes.
+update_prices.py — Parallel stock price updater (IOPS-balanced).
+
+IOPS reductions vs the previous version (~5–10× fewer writes during market
+hours, ~100× fewer after hours/weekends):
+  * Skip-if-unchanged: only upsert tickers whose price/dayHigh/dayLow moved.
+    Stocks with no real movement in a cycle generate zero writes.
+  * Long inter-cycle sleeps: passes no longer run back-to-back. 90s during
+    market hours, 10 min after close, 30 min on weekends.
+  * prev_closes cached once per day (refreshed only after the EOD flush)
+    instead of re-scanning the stocks table every cycle.
+  * Fewer parallel workers — less concurrent write pressure on the DB.
 """
 
 import yfinance as yf
@@ -15,7 +24,7 @@ import io
 import pytz
 from datetime import datetime
 from dotenv import load_dotenv
-from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
+from concurrent.futures import ThreadPoolExecutor, wait
 
 load_dotenv()
 
@@ -30,20 +39,31 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 print("Connected to Supabase.")
 
 # ── Tuning ─────────────────────────────────────────────────────────────────────
-PRICE_BATCH        = 250   # tickers per yf.download call
-MAX_WORKERS        = 5     # parallel download workers (market hours)
-CLOSED_WORKERS     = 2     # parallel workers after hours
-INTER_GROUP_SLEEP  = 0.5   # seconds between groups of workers
-CLOSED_SLEEP       = 3     # seconds between groups after hours
-FUND_BATCH         = 15
-FUND_SLEEP         = 4
-FUND_INTERVAL_SEC  = 4 * 3600
-MAX_HISTORY_POINTS = 365 * 5
+PRICE_BATCH         = 250    # tickers per yf.download call
+MAX_WORKERS         = 3      # parallel download workers (market hours) — was 5
+CLOSED_WORKERS      = 1      # parallel workers after hours — was 2
+INTER_GROUP_SLEEP   = 1.0    # between worker groups within a pass
+CLOSED_GROUP_SLEEP  = 5
+FUND_BATCH          = 15
+FUND_SLEEP          = 4
+FUND_INTERVAL_SEC   = 4 * 3600
+MAX_HISTORY_POINTS  = 365 * 5
+
+# Inter-cycle sleep (the main IOPS knob). Cycles no longer run back-to-back.
+CYCLE_SLEEP_OPEN    = 90     # market hours — full pass every ~1.5 min
+CYCLE_SLEEP_CLOSED  = 600    # weekday after hours — every 10 min
+CYCLE_SLEEP_WEEKEND = 1800   # weekends — every 30 min
+
+# Only consider a price change "real" if it moved by at least this many dollars.
+# Filters last-trade dithering so identical rows aren't re-written.
+MIN_PRICE_DELTA     = 0.005
 
 # ── State ──────────────────────────────────────────────────────────────────────
 history_written_today  = False
 current_date_str       = ""
 last_fundamentals_time = 0.0
+prev_closes: dict      = {}   # cached; refreshed at startup and after each EOD flush only
+last_written: dict     = {}   # ticker -> last upserted {price, dayHigh, dayLow} (skip-cache)
 
 
 def safe_float(value, fallback=0.0):
@@ -62,19 +82,18 @@ def is_market_open():
     return datetime.strptime("08:30", "%H:%M").time() <= now.time() <= datetime.strptime("15:00", "%H:%M").time()
 
 
+def is_weekend():
+    return datetime.now(pytz.timezone("US/Central")).weekday() >= 5
+
+
 def market_closed_for_day():
     cst = pytz.timezone("US/Central")
     return datetime.now(cst).time() > datetime.strptime("15:00", "%H:%M").time()
 
 
 def get_all_tickers():
-    """
-    Merge DB tickers (always updated) + screener tickers (discover new stocks).
-    DB tickers come first so they're never dropped from rotation.
-    """
+    """Merge DB tickers (always refreshed) with screener tickers (new listings)."""
     print("Fetching ticker list...")
-
-    # 1. Pull everything already in the DB so those stocks always get refreshed.
     db_tickers = []
     try:
         resp = supabase.table("stocks").select("symbol").execute()
@@ -84,7 +103,6 @@ def get_all_tickers():
     except Exception as e:
         print(f"  DB ticker fetch failed: {e}")
 
-    # 2. Screener for new/active stocks.
     screener_tickers = []
     try:
         headers = {"User-Agent": "Mozilla/5.0"}
@@ -96,11 +114,7 @@ def get_all_tickers():
             )
             r = requests.get(url, headers=headers, timeout=15)
             data = r.json()
-            quotes = (
-                data.get("finance", {})
-                    .get("result", [{}])[0]
-                    .get("quotes", [])
-            )
+            quotes = data.get("finance", {}).get("result", [{}])[0].get("quotes", [])
             if not quotes:
                 break
             screener_tickers.extend([q["symbol"] for q in quotes if q.get("symbol")])
@@ -108,9 +122,7 @@ def get_all_tickers():
     except Exception as e:
         print(f"  Screener fetch failed: {e}")
 
-    # Merge (DB first), deduplicate, drop junk symbols.
-    seen = set()
-    clean = []
+    seen, clean = set(), []
     for t in db_tickers + screener_tickers:
         if not t or t in seen:
             continue
@@ -118,9 +130,20 @@ def get_all_tickers():
         if "$" in t or t.endswith(("-W", "-R", "-U")):
             continue
         clean.append(t)
-
     print(f"  {len(clean)} total tickers to track.")
     return clean
+
+
+def refresh_prev_closes():
+    """One-time read of close_price for all symbols. Called at startup and after EOD flush."""
+    global prev_closes
+    try:
+        resp = supabase.table("stocks").select("symbol, close_price").execute()
+        if resp.data:
+            prev_closes = {r["symbol"]: r["close_price"] or 0.0 for r in resp.data}
+        print(f"  Cached prev_closes for {len(prev_closes)} symbols.")
+    except Exception as e:
+        print(f"  Could not refresh prev_closes: {e}")
 
 
 # ── Price fetch ────────────────────────────────────────────────────────────────
@@ -132,12 +155,8 @@ def fetch_prices_batch(batch: list) -> dict:
     try:
         sys.stderr = io.StringIO()
         df = yf.download(
-            tickers_str,
-            period="1d",
-            interval="1m",
-            progress=False,
-            threads=True,
-            auto_adjust=True,
+            tickers_str, period="1d", interval="1m",
+            progress=False, threads=True, auto_adjust=True,
         )
     except Exception as e:
         sys.stderr = _stderr
@@ -183,11 +202,26 @@ def fetch_prices_batch(batch: list) -> dict:
     return result
 
 
-def build_upserts(prices: dict, prev_closes: dict) -> list:
+def build_upserts(prices: dict) -> tuple:
+    """Build upsert rows, skipping tickers whose display values are unchanged.
+
+    Returns (upserts, n_skipped). Volume isn't compared because it ticks
+    continuously during trading — comparing only price/dayHigh/dayLow lets
+    quiet stocks skip writes even while volume creeps up.
+    """
     upserts = []
+    skipped = 0
     for ticker, d in prices.items():
         cp = d["price"]
         if cp <= 0:
+            continue
+        last = last_written.get(ticker)
+        if last and (
+            abs(last["price"]   - cp)          < MIN_PRICE_DELTA and
+            abs(last["dayHigh"] - d["dayHigh"]) < MIN_PRICE_DELTA and
+            abs(last["dayLow"]  - d["dayLow"])  < MIN_PRICE_DELTA
+        ):
+            skipped += 1
             continue
         stored_prev    = prev_closes.get(ticker, 0.0)
         effective_prev = stored_prev if stored_prev > 0 else d["open_price"]
@@ -208,30 +242,21 @@ def build_upserts(prices: dict, prev_closes: dict) -> list:
             "open_price":    d["open_price"],
             "updatedAt":     "now()",
         })
-    return upserts
+    return upserts, skipped
 
 
 def run_price_pass(tickers: list, market_open: bool) -> int:
     pass_start = time.time()
 
-    # Fetch prev_closes once for the whole pass.
-    prev_closes: dict = {}
-    try:
-        resp = supabase.table("stocks").select("symbol, close_price").execute()
-        if resp.data:
-            prev_closes = {r["symbol"]: r["close_price"] or 0.0 for r in resp.data}
-    except Exception as e:
-        print(f"  Could not fetch prev_closes: {e}")
-
     batches     = [tickers[i:i + PRICE_BATCH] for i in range(0, len(tickers), PRICE_BATCH)]
     n_batches   = len(batches)
     workers     = MAX_WORKERS if market_open else CLOSED_WORKERS
-    group_sleep = INTER_GROUP_SLEEP if market_open else CLOSED_SLEEP
-    total_upserted = 0
+    group_sleep = INTER_GROUP_SLEEP if market_open else CLOSED_GROUP_SLEEP
+    total_written = 0
+    total_skipped = 0
 
     print(f"  {n_batches} batches × {PRICE_BATCH} tickers, {workers} workers")
 
-    # Process in groups of `workers` — submit a group, wait for all, then next group.
     for group_start in range(0, n_batches, workers):
         group   = batches[group_start:group_start + workers]
         n_group = len(group)
@@ -244,8 +269,9 @@ def run_price_pass(tickers: list, market_open: bool) -> int:
             gi = futures[future]
             batch_num = group_start + gi + 1
             try:
-                prices  = future.result()
-                upserts = build_upserts(prices, prev_closes)
+                prices            = future.result()
+                upserts, skipped  = build_upserts(prices)
+                total_skipped    += skipped
             except Exception as e:
                 print(f"  [PRICE] Batch {batch_num}/{n_batches} — fetch error: {e}")
                 continue
@@ -253,19 +279,26 @@ def run_price_pass(tickers: list, market_open: bool) -> int:
             if upserts:
                 try:
                     supabase.table("stocks").upsert(upserts).execute()
-                    total_upserted += len(upserts)
-                    print(f"  [PRICE] Batch {batch_num}/{n_batches} — {len(upserts)} OK")
+                    # Update skip-cache so unchanged tickers don't get re-written next cycle.
+                    for row in upserts:
+                        last_written[row["symbol"]] = {
+                            "price":   row["price"],
+                            "dayHigh": row["dayHigh"],
+                            "dayLow":  row["dayLow"],
+                        }
+                    total_written += len(upserts)
+                    print(f"  [PRICE] Batch {batch_num}/{n_batches} — wrote {len(upserts)}, skipped {skipped} unchanged")
                 except Exception as e:
                     print(f"  [PRICE] Batch {batch_num}/{n_batches} — DB error: {e}")
             else:
-                print(f"  [PRICE] Batch {batch_num}/{n_batches} — no valid data")
+                print(f"  [PRICE] Batch {batch_num}/{n_batches} — all {skipped} unchanged, no write")
 
         if group_start + workers < n_batches:
             time.sleep(group_sleep)
 
     elapsed = time.time() - pass_start
-    print(f"  Price pass complete — {total_upserted} records in {elapsed:.1f}s")
-    return total_upserted
+    print(f"  Pass done — wrote {total_written}, skipped {total_skipped} unchanged in {elapsed:.1f}s")
+    return total_written
 
 
 # ── Fundamentals (every 4 hours) ───────────────────────────────────────────────
@@ -379,7 +412,8 @@ def main():
     global history_written_today, current_date_str, last_fundamentals_time
 
     tickers = get_all_tickers()
-    last_fundamentals_time = time.time()  # defer first fundamentals run by 4h
+    refresh_prev_closes()                # cache once at startup; reload only after EOD
+    last_fundamentals_time = time.time() # defer first fundamentals run by 4h
 
     print("Entering continuous price-update loop...\n")
     while True:
@@ -390,15 +424,20 @@ def main():
         if today_date != current_date_str:
             current_date_str      = today_date
             history_written_today = False
-            # Re-fetch tickers daily to pick up new listings.
             tickers = get_all_tickers()
+            # Wipe skip-cache at day rollover so every ticker writes at least
+            # once today (catches the case where a stock's last value happens
+            # to match the prior session's last write).
+            last_written.clear()
 
         market_open = is_market_open()
+        weekend     = is_weekend()
 
         print(
             f"[CYCLE] {now_cst.strftime('%H:%M:%S')} | "
             f"market={'OPEN' if market_open else 'CLOSED'} | "
-            f"tickers={len(tickers)}"
+            f"tickers={len(tickers)} | "
+            f"skip-cache={len(last_written)}"
         )
 
         run_price_pass(tickers, market_open)
@@ -410,6 +449,17 @@ def main():
         if market_closed_for_day() and not history_written_today:
             write_history_for_all(tickers)
             history_written_today = True
+            refresh_prev_closes()  # close prices changed; reload the cache
+
+        # End-of-cycle sleep — the main IOPS budget knob.
+        if weekend:
+            sleep_s = CYCLE_SLEEP_WEEKEND
+        elif market_open:
+            sleep_s = CYCLE_SLEEP_OPEN
+        else:
+            sleep_s = CYCLE_SLEEP_CLOSED
+        print(f"  Sleeping {sleep_s}s before next cycle.\n")
+        time.sleep(sleep_s)
 
 
 if __name__ == "__main__":
